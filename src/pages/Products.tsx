@@ -51,11 +51,11 @@ const Products = () => {
       
       <main className="container mx-auto px-4 py-12">
         <div className="text-center mb-12 space-y-4">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-float">
-            Premium Collection
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-float">
+            Sandeep Enterprises
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Discover our curated selection of high-quality products
+            Quality Chawal, Atta, Kapila and more for your daily needs
           </p>
         </div>
 
