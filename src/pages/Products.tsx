@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
 import { Navbar } from "@/components/Navbar";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Product {
   id: string;
@@ -14,10 +20,19 @@ interface Product {
   category: string | null;
 }
 
+const CHAWAL_VARIETIES = [
+  "Parmal Polished Rice",
+  "Sona Mansoori Rice",
+  "Katarani Rice",
+  "Basmati Rice",
+  "Biryani Chawal",
+];
+
 const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedChawalVariety, setSelectedChawalVariety] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -41,9 +56,25 @@ const Products = () => {
 
   const categories = ["All", ...new Set(products.map((p) => p.category).filter(Boolean))];
   
-  const filteredProducts = selectedCategory === "All"
-    ? products
-    : products.filter((p) => p.category === selectedCategory);
+  const filteredProducts = (() => {
+    if (selectedCategory === "All") return products;
+    if (selectedCategory === "Chawal" && selectedChawalVariety) {
+      return products.filter((p) => p.name === selectedChawalVariety);
+    }
+    return products.filter((p) => p.category === selectedCategory);
+  })();
+
+  const handleCategoryClick = (category: string) => {
+    if (category !== "Chawal") {
+      setSelectedChawalVariety(null);
+    }
+    setSelectedCategory(category);
+  };
+
+  const handleChawalVarietyClick = (variety: string) => {
+    setSelectedCategory("Chawal");
+    setSelectedChawalVariety(variety);
+  };
 
   return (
     <div className="min-h-screen">
@@ -62,17 +93,56 @@ const Products = () => {
         {/* Category Filter */}
         <div className="flex flex-wrap gap-3 justify-center mb-12">
           {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-6 py-2 rounded-full transition-all ${
-                selectedCategory === category
-                  ? "glass-card text-primary font-semibold scale-105"
-                  : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
-              }`}
-            >
-              {category}
-            </button>
+            category === "Chawal" ? (
+              <DropdownMenu key={category}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={`px-6 py-2 rounded-full transition-all flex items-center gap-2 ${
+                      selectedCategory === "Chawal"
+                        ? "glass-card text-primary font-semibold scale-105"
+                        : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
+                    }`}
+                  >
+                    Chawal
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedCategory("Chawal");
+                      setSelectedChawalVariety(null);
+                    }}
+                    className="cursor-pointer hover:bg-accent"
+                  >
+                    All Chawal
+                  </DropdownMenuItem>
+                  {CHAWAL_VARIETIES.map((variety) => (
+                    <DropdownMenuItem
+                      key={variety}
+                      onClick={() => handleChawalVarietyClick(variety)}
+                      className={`cursor-pointer hover:bg-accent ${
+                        selectedChawalVariety === variety ? "bg-accent text-primary font-semibold" : ""
+                      }`}
+                    >
+                      {variety}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <button
+                key={category}
+                onClick={() => handleCategoryClick(category)}
+                className={`px-6 py-2 rounded-full transition-all ${
+                  selectedCategory === category && category !== "Chawal"
+                    ? "glass-card text-primary font-semibold scale-105"
+                    : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
+                }`}
+              >
+                {category}
+              </button>
+            )
           ))}
         </div>
 
