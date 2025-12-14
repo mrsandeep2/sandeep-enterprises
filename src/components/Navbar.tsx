@@ -66,8 +66,8 @@ export const Navbar = () => {
     <nav className="glass-nav sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            GlassStore
+          <Link to="/" className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Sandeep Enterprises
           </Link>
 
           {/* Desktop Navigation */}

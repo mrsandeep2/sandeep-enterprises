@@ -9,10 +9,10 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="space-y-4">
             <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              GlassStore
+              Sandeep Enterprises
             </h3>
             <p className="text-muted-foreground text-sm">
-              Premium products with a modern touch. Experience shopping like never before.
+              Quality groceries at best prices. Chawal, Atta, Kapila and more for your daily needs.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
@@ -87,15 +87,15 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-muted-foreground text-sm">
                 <MapPin className="h-4 w-4 text-primary" />
-                <span>123 Glass Street, Modern City</span>
+                <span>Main Market, Local Area</span>
               </li>
               <li className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Phone className="h-4 w-4 text-primary" />
-                <span>+1 (555) 123-4567</span>
+                <span>+91 98765 43210</span>
               </li>
               <li className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Mail className="h-4 w-4 text-primary" />
-                <span>support@glassstore.com</span>
+                <span>sandeep.enterprises@email.com</span>
               </li>
             </ul>
           </div>
@@ -104,7 +104,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-border/20 mt-8 pt-8 text-center">
           <p className="text-muted-foreground text-sm">
-            © {new Date().getFullYear()} GlassStore. All rights reserved.
+            © {new Date().getFullYear()} Sandeep Enterprises. All rights reserved.
           </p>
         </div>
       </div>
