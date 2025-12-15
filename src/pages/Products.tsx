@@ -28,11 +28,18 @@ const CHAWAL_VARIETIES = [
   "Biryani Chawal",
 ];
 
+const KAPILA_VARIETIES = [
+  "Kapila Dairy Special (By Pass)",
+  "Kapila Super Pellet",
+  "Kapila Balanced Feed",
+];
+
 const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedChawalVariety, setSelectedChawalVariety] = useState<string | null>(null);
+  const [selectedKapilaVariety, setSelectedKapilaVariety] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -61,6 +68,9 @@ const Products = () => {
     if (selectedCategory === "Chawal" && selectedChawalVariety) {
       return products.filter((p) => p.name === selectedChawalVariety);
     }
+    if (selectedCategory === "Kapila" && selectedKapilaVariety) {
+      return products.filter((p) => p.name === selectedKapilaVariety);
+    }
     return products.filter((p) => p.category === selectedCategory);
   })();
 
@@ -68,12 +78,20 @@ const Products = () => {
     if (category !== "Chawal") {
       setSelectedChawalVariety(null);
     }
+    if (category !== "Kapila") {
+      setSelectedKapilaVariety(null);
+    }
     setSelectedCategory(category);
   };
 
   const handleChawalVarietyClick = (variety: string) => {
     setSelectedCategory("Chawal");
     setSelectedChawalVariety(variety);
+  };
+
+  const handleKapilaVarietyClick = (variety: string) => {
+    setSelectedCategory("Kapila");
+    setSelectedKapilaVariety(variety);
   };
 
   return (
@@ -130,12 +148,49 @@ const Products = () => {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : category === "Kapila" ? (
+              <DropdownMenu key={category}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={`px-6 py-2 rounded-full transition-all flex items-center gap-2 ${
+                      selectedCategory === "Kapila"
+                        ? "glass-card text-primary font-semibold scale-105"
+                        : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
+                    }`}
+                  >
+                    Kapila
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedCategory("Kapila");
+                      setSelectedKapilaVariety(null);
+                    }}
+                    className="cursor-pointer hover:bg-accent"
+                  >
+                    All Kapila
+                  </DropdownMenuItem>
+                  {KAPILA_VARIETIES.map((variety) => (
+                    <DropdownMenuItem
+                      key={variety}
+                      onClick={() => handleKapilaVarietyClick(variety)}
+                      className={`cursor-pointer hover:bg-accent ${
+                        selectedKapilaVariety === variety ? "bg-accent text-primary font-semibold" : ""
+                      }`}
+                    >
+                      {variety}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <button
                 key={category}
                 onClick={() => handleCategoryClick(category)}
                 className={`px-6 py-2 rounded-full transition-all ${
-                  selectedCategory === category && category !== "Chawal"
+                  selectedCategory === category && category !== "Chawal" && category !== "Kapila"
                     ? "glass-card text-primary font-semibold scale-105"
                     : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
                 }`}
