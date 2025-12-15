@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
 import { Navbar } from "@/components/Navbar";
-import { Loader2, ChevronDown } from "lucide-react";
+import { Loader2, ChevronDown, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +41,7 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedChawalVariety, setSelectedChawalVariety] = useState<string | null>(null);
   const [selectedKapilaVariety, setSelectedKapilaVariety] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchProducts();
@@ -64,14 +66,28 @@ const Products = () => {
   const categories = ["All", ...new Set(products.map((p) => p.category).filter(Boolean))];
   
   const filteredProducts = (() => {
-    if (selectedCategory === "All") return products;
+    let filtered = products;
+    
+    // Apply search filter first
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          p.description?.toLowerCase().includes(query) ||
+          p.category?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Then apply category filter
+    if (selectedCategory === "All") return filtered;
     if (selectedCategory === "Chawal" && selectedChawalVariety) {
-      return products.filter((p) => p.name === selectedChawalVariety);
+      return filtered.filter((p) => p.name === selectedChawalVariety);
     }
     if (selectedCategory === "Kapila" && selectedKapilaVariety) {
-      return products.filter((p) => p.name === selectedKapilaVariety);
+      return filtered.filter((p) => p.name === selectedKapilaVariety);
     }
-    return products.filter((p) => p.category === selectedCategory);
+    return filtered.filter((p) => p.category === selectedCategory);
   })();
 
   const handleCategoryClick = (category: string) => {
@@ -94,22 +110,48 @@ const Products = () => {
     setSelectedKapilaVariety(variety);
   };
 
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
   return (
     <div className="min-h-screen">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12 space-y-4">
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-float">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
+        <div className="text-center mb-6 sm:mb-10 space-y-2 sm:space-y-4">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
             Sandeep Enterprises
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
             Quality Chawal, Atta, Kapila and more for your daily needs
           </p>
         </div>
 
+        {/* Search Bar */}
+        <div className="max-w-md mx-auto mb-6 sm:mb-8">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-10 glass-input rounded-full h-10 sm:h-11"
+            />
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Category Filter */}
-        <div className="flex flex-wrap gap-3 justify-center mb-12">
+        <div className="flex flex-wrap gap-2 sm:gap-3 justify-center mb-6 sm:mb-10 px-1">
           {categories.map((category) => (
             category === "Chawal" ? (
               <DropdownMenu key={category}>
@@ -206,11 +248,13 @@ const Products = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="text-center glass-card rounded-2xl p-12">
-            <p className="text-xl text-muted-foreground">No products found</p>
+          <div className="text-center glass-card rounded-2xl p-8 sm:p-12">
+            <p className="text-lg sm:text-xl text-muted-foreground">
+              {searchQuery ? `No products found for "${searchQuery}"` : "No products found"}
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

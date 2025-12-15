@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ArrowLeft, GitCompare } from "lucide-react";
+import { ShoppingCart, ArrowLeft, GitCompare, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProductCard } from "@/components/ProductCard";
 
 interface Product {
   id: string;
@@ -24,10 +24,13 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [product, setProduct] = useState<Product | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) fetchProduct();
+    if (id) {
+      fetchProduct();
+    }
   }, [id]);
 
   const fetchProduct = async () => {
@@ -40,6 +43,20 @@ const ProductDetail = () => {
 
       if (error) throw error;
       setProduct(data as Product);
+
+      // Fetch similar products (same category, excluding current product)
+      if (data?.category) {
+        const { data: similar, error: similarError } = await supabase
+          .from("products")
+          .select("*")
+          .eq("category", data.category)
+          .neq("id", id)
+          .limit(4);
+
+        if (!similarError && similar) {
+          setSimilarProducts(similar as Product[]);
+        }
+      }
     } catch (error) {
       console.error("Error fetching product:", error);
       toast({
@@ -131,59 +148,59 @@ const ProductDetail = () => {
     <div className="min-h-screen">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
-          className="mb-6 gap-2"
+          className="mb-4 sm:mb-6 gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Products
         </Button>
 
-        <div className="grid md:grid-cols-2 gap-12">
-          <div className="glass-card rounded-3xl overflow-hidden p-4">
+        <div className="grid md:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
+          <div className="glass-card rounded-2xl sm:rounded-3xl overflow-hidden p-2 sm:p-4">
             <img
               src={product.image_url || "https://via.placeholder.com/600"}
               alt={product.name}
-              className="w-full h-full object-cover rounded-2xl"
+              className="w-full h-48 sm:h-72 md:h-full object-cover rounded-xl sm:rounded-2xl"
             />
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {product.category && (
-              <span className="text-sm font-semibold text-primary uppercase tracking-wide">
+              <span className="text-xs sm:text-sm font-semibold text-primary uppercase tracking-wide">
                 {product.category}
               </span>
             )}
             
-            <h1 className="text-4xl font-bold text-card-foreground">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-card-foreground">
               {product.name}
             </h1>
 
-            <p className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              ${product.price}
+            <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              ₹{product.price}
             </p>
 
             <Tabs defaultValue="details" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="specifications">Specifications</TabsTrigger>
+                <TabsTrigger value="details" className="text-xs sm:text-sm">Details</TabsTrigger>
+                <TabsTrigger value="specifications" className="text-xs sm:text-sm">Specifications</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="details" className="space-y-4">
-                <div className="glass-card rounded-2xl p-6">
-                  <h2 className="font-semibold mb-3">Description</h2>
-                  <p className="text-muted-foreground leading-relaxed">
+              <TabsContent value="details" className="space-y-3 sm:space-y-4">
+                <div className="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                  <h2 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base">Description</h2>
+                  <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">
                     {product.description || "No description available"}
                   </p>
                 </div>
 
-                <div className="glass-card rounded-2xl p-6">
+                <div className="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-semibold">Availability</h3>
-                      <p className="text-muted-foreground">
+                      <h3 className="font-semibold text-sm sm:text-base">Availability</h3>
+                      <p className="text-muted-foreground text-sm">
                         {product.stock !== null && product.stock > 0
                           ? `${product.stock} in stock`
                           : "Out of stock"}
@@ -193,47 +210,61 @@ const ProductDetail = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="specifications" className="space-y-4">
-                <div className="glass-card rounded-2xl p-6">
-                  <h2 className="font-semibold mb-4">Product Specifications</h2>
+              <TabsContent value="specifications" className="space-y-3 sm:space-y-4">
+                <div className="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                  <h2 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Product Specifications</h2>
                   {product.specifications && Object.keys(product.specifications).length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                       {Object.entries(product.specifications).map(([key, value]) => (
-                        <div key={key} className="flex justify-between py-2 border-b border-border/50 last:border-0">
+                        <div key={key} className="flex justify-between py-2 border-b border-border/50 last:border-0 text-sm">
                           <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</span>
                           <span className="font-medium">{String(value)}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground">No specifications available for this product</p>
+                    <p className="text-muted-foreground text-sm">No specifications available for this product</p>
                   )}
                 </div>
               </TabsContent>
             </Tabs>
 
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3">
               <Button
                 onClick={addToCart}
                 disabled={product.stock === 0}
                 size="lg"
-                className="flex-1 gap-2"
+                className="flex-1 gap-2 text-sm sm:text-base"
               >
-                <ShoppingCart className="h-5 w-5" />
+                <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
                 Add to Cart
               </Button>
               <Button
                 onClick={addToComparison}
                 variant="outline"
                 size="lg"
-                className="gap-2"
+                className="gap-2 text-sm sm:text-base"
               >
-                <GitCompare className="h-5 w-5" />
-                Compare
+                <GitCompare className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Compare</span>
               </Button>
             </div>
           </div>
         </div>
+
+        {/* Similar Products Section */}
+        {similarProducts.length > 0 && (
+          <section className="mt-12 sm:mt-16">
+            <h2 className="text-xl sm:text-2xl font-bold text-card-foreground mb-6 sm:mb-8">
+              Similar Products
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {similarProducts.map((similarProduct) => (
+                <ProductCard key={similarProduct.id} product={similarProduct} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
