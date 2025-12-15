@@ -51,7 +51,7 @@ const ProductDetail = () => {
           .select("*")
           .eq("category", data.category)
           .neq("id", id)
-          .limit(4);
+          .limit(3);
 
         if (!similarError && similar) {
           setSimilarProducts(similar as Product[]);
@@ -258,7 +258,7 @@ const ProductDetail = () => {
             <h2 className="text-xl sm:text-2xl font-bold text-card-foreground mb-6 sm:mb-8">
               Similar Products
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {similarProducts.map((similarProduct) => (
                 <ProductCard key={similarProduct.id} product={similarProduct} />
               ))}
