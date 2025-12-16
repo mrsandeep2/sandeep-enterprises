@@ -8,90 +8,90 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Fresh Nature-Inspired Base */
-    --background: 90 30% 96%;
-    --foreground: 30 25% 15%;
+    /* Vibrant Nature-Inspired Base */
+    --background: 142 35% 88%;
+    --foreground: 30 35% 12%;
 
-    /* Card - Warm cream with natural feel */
-    --card: 45 40% 98%;
-    --card-foreground: 30 25% 15%;
+    /* Card - Soft mint green */
+    --card: 142 30% 95%;
+    --card-foreground: 30 35% 12%;
 
-    --popover: 45 40% 98%;
-    --popover-foreground: 30 25% 15%;
+    --popover: 142 30% 95%;
+    --popover-foreground: 30 35% 12%;
 
-    /* Primary - Fresh Green (nature, grocery) */
-    --primary: 142 50% 40%;
+    /* Primary - Rich Forest Green */
+    --primary: 142 55% 32%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 142 45% 50%;
+    --primary-glow: 142 50% 42%;
 
-    /* Secondary - Earthy Brown */
-    --secondary: 30 35% 88%;
-    --secondary-foreground: 30 40% 25%;
+    /* Secondary - Warm Earthy Brown */
+    --secondary: 30 45% 75%;
+    --secondary-foreground: 30 50% 18%;
 
-    /* Muted - Soft sage */
-    --muted: 90 15% 90%;
-    --muted-foreground: 90 10% 40%;
+    /* Muted - Sage green */
+    --muted: 142 25% 82%;
+    --muted-foreground: 142 20% 35%;
 
-    /* Accent - Warm Golden Yellow */
-    --accent: 45 85% 55%;
-    --accent-foreground: 30 40% 15%;
+    /* Accent - Vibrant Golden Yellow */
+    --accent: 45 90% 50%;
+    --accent-foreground: 30 50% 12%;
 
     /* Info Blue */
-    --info: 210 70% 50%;
+    --info: 210 75% 45%;
     --info-foreground: 0 0% 100%;
 
-    --destructive: 0 65% 50%;
+    --destructive: 0 70% 45%;
     --destructive-foreground: 0 0% 100%;
 
     /* Natural borders and inputs */
-    --border: 90 20% 85%;
-    --input: 90 20% 92%;
-    --ring: 142 50% 40%;
+    --border: 142 30% 75%;
+    --input: 142 25% 90%;
+    --ring: 142 55% 32%;
 
     --radius: 1rem;
 
     /* Glassmorphism specific */
-    --glass-bg: 45 40% 98%;
-    --glass-border: 90 20% 82%;
-    --shadow-glass: 30 30% 50%;
+    --glass-bg: 142 30% 92%;
+    --glass-border: 142 25% 70%;
+    --shadow-glass: 142 40% 30%;
   }
 
   .dark {
-    --background: 30 20% 8%;
-    --foreground: 45 20% 92%;
+    --background: 142 25% 8%;
+    --foreground: 142 15% 92%;
 
-    --card: 30 18% 12%;
-    --card-foreground: 45 20% 92%;
+    --card: 142 20% 12%;
+    --card-foreground: 142 15% 92%;
 
-    --popover: 30 18% 12%;
-    --popover-foreground: 45 20% 92%;
+    --popover: 142 20% 12%;
+    --popover-foreground: 142 15% 92%;
 
-    --primary: 142 45% 45%;
+    --primary: 142 50% 45%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 142 40% 55%;
+    --primary-glow: 142 45% 55%;
 
-    --secondary: 30 25% 18%;
-    --secondary-foreground: 45 20% 90%;
+    --secondary: 30 35% 25%;
+    --secondary-foreground: 30 20% 90%;
 
-    --muted: 30 15% 20%;
-    --muted-foreground: 45 10% 55%;
+    --muted: 142 20% 18%;
+    --muted-foreground: 142 15% 55%;
 
-    --accent: 45 80% 50%;
-    --accent-foreground: 30 40% 10%;
+    --accent: 45 85% 50%;
+    --accent-foreground: 30 50% 10%;
 
-    --info: 210 65% 55%;
+    --info: 210 70% 55%;
     --info-foreground: 0 0% 100%;
 
-    --destructive: 0 60% 48%;
+    --destructive: 0 65% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 15% 22%;
-    --input: 30 15% 18%;
-    --ring: 142 45% 45%;
+    --border: 142 20% 22%;
+    --input: 142 20% 16%;
+    --ring: 142 50% 45%;
 
-    --glass-bg: 30 18% 12%;
-    --glass-border: 30 15% 22%;
-    --shadow-glass: 30 25% 5%;
+    --glass-bg: 142 20% 12%;
+    --glass-border: 142 20% 22%;
+    --shadow-glass: 142 25% 5%;
   }
 }
 
@@ -102,19 +102,27 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    background: linear-gradient(135deg, hsl(90 30% 96%) 0%, hsl(45 35% 95%) 50%, hsl(142 25% 94%) 100%);
+    background: linear-gradient(145deg, 
+      hsl(142 40% 85%) 0%, 
+      hsl(90 35% 82%) 25%,
+      hsl(45 40% 85%) 50%,
+      hsl(30 35% 82%) 75%,
+      hsl(142 35% 85%) 100%);
     min-height: 100vh;
   }
 }
 
-/* Glassmorphism Utilities - Nature Inspired */
+/* Glassmorphism Utilities - Vibrant Nature */
 @layer components {
   .glass-card {
-    background: linear-gradient(135deg, rgba(255, 253, 245, 0.85) 0%, rgba(240, 255, 240, 0.75) 100%);
+    background: linear-gradient(135deg, 
+      hsla(142, 35%, 92%, 0.9) 0%, 
+      hsla(90, 30%, 90%, 0.85) 50%,
+      hsla(45, 35%, 92%, 0.9) 100%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(142, 180, 142, 0.25);
-    box-shadow: 0 8px 32px 0 rgba(45, 75, 45, 0.12);
+    border: 1px solid hsla(142, 40%, 60%, 0.35);
+    box-shadow: 0 8px 32px 0 hsla(142, 50%, 25%, 0.15);
   }
 
   .glass-card-hover {
@@ -123,27 +131,29 @@ All colors MUST be HSL.
 
   .glass-card-hover:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px 0 rgba(45, 75, 45, 0.2);
-    border-color: rgba(142, 180, 142, 0.4);
+    box-shadow: 0 12px 40px 0 hsla(142, 50%, 25%, 0.25);
+    border-color: hsla(142, 45%, 50%, 0.5);
   }
 
   .glass-input {
-    background: rgba(255, 253, 245, 0.6);
+    background: hsla(142, 30%, 94%, 0.8);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(142, 180, 142, 0.3);
+    border: 1px solid hsla(142, 35%, 65%, 0.4);
   }
 
   .glass-nav {
-    background: linear-gradient(135deg, rgba(255, 253, 245, 0.9) 0%, rgba(240, 255, 240, 0.85) 100%);
+    background: linear-gradient(135deg, 
+      hsla(142, 35%, 90%, 0.95) 0%, 
+      hsla(45, 35%, 92%, 0.9) 100%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(142, 180, 142, 0.2);
-    box-shadow: 0 4px 20px 0 rgba(45, 75, 45, 0.08);
+    border-bottom: 1px solid hsla(142, 40%, 60%, 0.3);
+    box-shadow: 0 4px 20px 0 hsla(142, 50%, 25%, 0.1);
   }
 
   .gradient-text {
-    background: linear-gradient(135deg, hsl(142 50% 40%) 0%, hsl(45 85% 45%) 100%);
+    background: linear-gradient(135deg, hsl(142 55% 32%) 0%, hsl(45 90% 45%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
