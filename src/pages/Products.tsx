@@ -35,12 +35,27 @@ const KAPILA_VARIETIES = [
   "Kapila Balanced Feed",
 ];
 
+const ATTA_VARIETIES = [
+  "Atta 5kg",
+  "Atta 10kg",
+  "Atta 15kg",
+  "Atta 25kg",
+];
+
+const CHOKAR_VARIETIES = [
+  "Chokar 48kg",
+  "Chokar 44kg",
+  "Chokar 35kg",
+];
+
 const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedChawalVariety, setSelectedChawalVariety] = useState<string | null>(null);
   const [selectedKapilaVariety, setSelectedKapilaVariety] = useState<string | null>(null);
+  const [selectedAttaVariety, setSelectedAttaVariety] = useState<string | null>(null);
+  const [selectedChokarVariety, setSelectedChokarVariety] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -87,16 +102,20 @@ const Products = () => {
     if (selectedCategory === "Kapila" && selectedKapilaVariety) {
       return filtered.filter((p) => p.name === selectedKapilaVariety);
     }
+    if (selectedCategory === "Atta" && selectedAttaVariety) {
+      return filtered.filter((p) => p.name === selectedAttaVariety);
+    }
+    if (selectedCategory === "Chokar" && selectedChokarVariety) {
+      return filtered.filter((p) => p.name === selectedChokarVariety);
+    }
     return filtered.filter((p) => p.category === selectedCategory);
   })();
 
   const handleCategoryClick = (category: string) => {
-    if (category !== "Chawal") {
-      setSelectedChawalVariety(null);
-    }
-    if (category !== "Kapila") {
-      setSelectedKapilaVariety(null);
-    }
+    if (category !== "Chawal") setSelectedChawalVariety(null);
+    if (category !== "Kapila") setSelectedKapilaVariety(null);
+    if (category !== "Atta") setSelectedAttaVariety(null);
+    if (category !== "Chokar") setSelectedChokarVariety(null);
     setSelectedCategory(category);
   };
 
@@ -108,6 +127,16 @@ const Products = () => {
   const handleKapilaVarietyClick = (variety: string) => {
     setSelectedCategory("Kapila");
     setSelectedKapilaVariety(variety);
+  };
+
+  const handleAttaVarietyClick = (variety: string) => {
+    setSelectedCategory("Atta");
+    setSelectedAttaVariety(variety);
+  };
+
+  const handleChokarVarietyClick = (variety: string) => {
+    setSelectedCategory("Chokar");
+    setSelectedChokarVariety(variety);
   };
 
   const clearSearch = () => {
@@ -152,95 +181,161 @@ const Products = () => {
 
         {/* Category Filter */}
         <div className="flex flex-wrap gap-2 sm:gap-3 justify-center mb-6 sm:mb-10 px-1">
-          {categories.map((category) => (
-            category === "Chawal" ? (
-              <DropdownMenu key={category}>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={`px-6 py-2 rounded-full transition-all flex items-center gap-2 ${
-                      selectedCategory === "Chawal"
-                        ? "glass-card text-primary font-semibold scale-105"
-                        : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
-                    }`}
-                  >
-                    Chawal
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setSelectedCategory("Chawal");
-                      setSelectedChawalVariety(null);
-                    }}
-                    className="cursor-pointer hover:bg-accent"
-                  >
-                    All Chawal
-                  </DropdownMenuItem>
-                  {CHAWAL_VARIETIES.map((variety) => (
-                    <DropdownMenuItem
-                      key={variety}
-                      onClick={() => handleChawalVarietyClick(variety)}
-                      className={`cursor-pointer hover:bg-accent ${
-                        selectedChawalVariety === variety ? "bg-accent text-primary font-semibold" : ""
+          {categories.map((category) => {
+            if (category === "Chawal") {
+              return (
+                <DropdownMenu key={category}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={`px-6 py-2 rounded-full transition-all flex items-center gap-2 ${
+                        selectedCategory === "Chawal"
+                          ? "glass-card text-primary font-semibold scale-105"
+                          : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
                       }`}
                     >
-                      {variety}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : category === "Kapila" ? (
-              <DropdownMenu key={category}>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={`px-6 py-2 rounded-full transition-all flex items-center gap-2 ${
-                      selectedCategory === "Kapila"
-                        ? "glass-card text-primary font-semibold scale-105"
-                        : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
-                    }`}
-                  >
-                    Kapila
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-background border border-border shadow-lg z-50">
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setSelectedCategory("Kapila");
-                      setSelectedKapilaVariety(null);
-                    }}
-                    className="cursor-pointer hover:bg-accent"
-                  >
-                    All Kapila
-                  </DropdownMenuItem>
-                  {KAPILA_VARIETIES.map((variety) => (
+                      Chawal
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-card border border-border shadow-lg z-50">
                     <DropdownMenuItem
-                      key={variety}
-                      onClick={() => handleKapilaVarietyClick(variety)}
-                      className={`cursor-pointer hover:bg-accent ${
-                        selectedKapilaVariety === variety ? "bg-accent text-primary font-semibold" : ""
+                      onClick={() => { setSelectedCategory("Chawal"); setSelectedChawalVariety(null); }}
+                      className="cursor-pointer hover:bg-muted"
+                    >
+                      All Chawal
+                    </DropdownMenuItem>
+                    {CHAWAL_VARIETIES.map((variety) => (
+                      <DropdownMenuItem
+                        key={variety}
+                        onClick={() => handleChawalVarietyClick(variety)}
+                        className={`cursor-pointer hover:bg-muted ${selectedChawalVariety === variety ? "bg-muted text-primary font-semibold" : ""}`}
+                      >
+                        {variety}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            }
+            if (category === "Kapila") {
+              return (
+                <DropdownMenu key={category}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={`px-6 py-2 rounded-full transition-all flex items-center gap-2 ${
+                        selectedCategory === "Kapila"
+                          ? "glass-card text-primary font-semibold scale-105"
+                          : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
                       }`}
                     >
-                      {variety}
+                      Kapila
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-card border border-border shadow-lg z-50">
+                    <DropdownMenuItem
+                      onClick={() => { setSelectedCategory("Kapila"); setSelectedKapilaVariety(null); }}
+                      className="cursor-pointer hover:bg-muted"
+                    >
+                      All Kapila
                     </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
+                    {KAPILA_VARIETIES.map((variety) => (
+                      <DropdownMenuItem
+                        key={variety}
+                        onClick={() => handleKapilaVarietyClick(variety)}
+                        className={`cursor-pointer hover:bg-muted ${selectedKapilaVariety === variety ? "bg-muted text-primary font-semibold" : ""}`}
+                      >
+                        {variety}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            }
+            if (category === "Atta") {
+              return (
+                <DropdownMenu key={category}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={`px-6 py-2 rounded-full transition-all flex items-center gap-2 ${
+                        selectedCategory === "Atta"
+                          ? "glass-card text-primary font-semibold scale-105"
+                          : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
+                      }`}
+                    >
+                      Atta
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-card border border-border shadow-lg z-50">
+                    <DropdownMenuItem
+                      onClick={() => { setSelectedCategory("Atta"); setSelectedAttaVariety(null); }}
+                      className="cursor-pointer hover:bg-muted"
+                    >
+                      All Atta
+                    </DropdownMenuItem>
+                    {ATTA_VARIETIES.map((variety) => (
+                      <DropdownMenuItem
+                        key={variety}
+                        onClick={() => handleAttaVarietyClick(variety)}
+                        className={`cursor-pointer hover:bg-muted ${selectedAttaVariety === variety ? "bg-muted text-primary font-semibold" : ""}`}
+                      >
+                        {variety}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            }
+            if (category === "Chokar") {
+              return (
+                <DropdownMenu key={category}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={`px-6 py-2 rounded-full transition-all flex items-center gap-2 ${
+                        selectedCategory === "Chokar"
+                          ? "glass-card text-primary font-semibold scale-105"
+                          : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
+                      }`}
+                    >
+                      Chokar
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-card border border-border shadow-lg z-50">
+                    <DropdownMenuItem
+                      onClick={() => { setSelectedCategory("Chokar"); setSelectedChokarVariety(null); }}
+                      className="cursor-pointer hover:bg-muted"
+                    >
+                      All Chokar
+                    </DropdownMenuItem>
+                    {CHOKAR_VARIETIES.map((variety) => (
+                      <DropdownMenuItem
+                        key={variety}
+                        onClick={() => handleChokarVarietyClick(variety)}
+                        className={`cursor-pointer hover:bg-muted ${selectedChokarVariety === variety ? "bg-muted text-primary font-semibold" : ""}`}
+                      >
+                        {variety}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            }
+            return (
               <button
                 key={category}
                 onClick={() => handleCategoryClick(category)}
                 className={`px-6 py-2 rounded-full transition-all ${
-                  selectedCategory === category && category !== "Chawal" && category !== "Kapila"
+                  selectedCategory === category
                     ? "glass-card text-primary font-semibold scale-105"
                     : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
                 }`}
               >
                 {category}
               </button>
-            )
-          ))}
+            );
+          })}
         </div>
 
         {loading ? (
