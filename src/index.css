@@ -8,83 +8,90 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Glassmorphism Base - Soft warm neutral */
-    --background: 220 20% 97%;
-    --foreground: 220 25% 18%;
+    /* Fresh Nature-Inspired Base */
+    --background: 90 30% 96%;
+    --foreground: 30 25% 15%;
 
-    /* Glass Card - Clean white with subtle warmth */
-    --card: 0 0% 100%;
-    --card-foreground: 220 25% 18%;
+    /* Card - Warm cream with natural feel */
+    --card: 45 40% 98%;
+    --card-foreground: 30 25% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 18%;
+    --popover: 45 40% 98%;
+    --popover-foreground: 30 25% 15%;
 
-    /* Primary - Deep teal (sophisticated, WCAG compliant) */
-    --primary: 200 65% 38%;
+    /* Primary - Fresh Green (nature, grocery) */
+    --primary: 142 50% 40%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 200 55% 48%;
+    --primary-glow: 142 45% 50%;
 
-    /* Secondary - Soft cool gray */
-    --secondary: 220 15% 94%;
-    --secondary-foreground: 220 25% 25%;
+    /* Secondary - Earthy Brown */
+    --secondary: 30 35% 88%;
+    --secondary-foreground: 30 40% 25%;
 
-    /* Muted - Gentle gray */
-    --muted: 220 12% 91%;
-    --muted-foreground: 220 15% 45%;
+    /* Muted - Soft sage */
+    --muted: 90 15% 90%;
+    --muted-foreground: 90 10% 40%;
 
-    /* Accent - Warm coral (subtle, not neon) */
-    --accent: 12 55% 55%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent - Warm Golden Yellow */
+    --accent: 45 85% 55%;
+    --accent-foreground: 30 40% 15%;
+
+    /* Info Blue */
+    --info: 210 70% 50%;
+    --info-foreground: 0 0% 100%;
 
     --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Glass borders and inputs */
-    --border: 220 15% 88%;
-    --input: 220 15% 92%;
-    --ring: 200 65% 38%;
+    /* Natural borders and inputs */
+    --border: 90 20% 85%;
+    --input: 90 20% 92%;
+    --ring: 142 50% 40%;
 
     --radius: 1rem;
 
     /* Glassmorphism specific */
-    --glass-bg: 0 0% 100%;
-    --glass-border: 220 15% 85%;
-    --shadow-glass: 220 20% 50%;
+    --glass-bg: 45 40% 98%;
+    --glass-border: 90 20% 82%;
+    --shadow-glass: 30 30% 50%;
   }
 
   .dark {
-    --background: 220 25% 10%;
-    --foreground: 220 15% 92%;
+    --background: 30 20% 8%;
+    --foreground: 45 20% 92%;
 
-    --card: 220 22% 14%;
-    --card-foreground: 220 15% 92%;
+    --card: 30 18% 12%;
+    --card-foreground: 45 20% 92%;
 
-    --popover: 220 22% 14%;
-    --popover-foreground: 220 15% 92%;
+    --popover: 30 18% 12%;
+    --popover-foreground: 45 20% 92%;
 
-    --primary: 200 55% 50%;
+    --primary: 142 45% 45%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 200 50% 60%;
+    --primary-glow: 142 40% 55%;
 
-    --secondary: 220 20% 20%;
-    --secondary-foreground: 220 15% 90%;
+    --secondary: 30 25% 18%;
+    --secondary-foreground: 45 20% 90%;
 
-    --muted: 220 18% 22%;
-    --muted-foreground: 220 12% 60%;
+    --muted: 30 15% 20%;
+    --muted-foreground: 45 10% 55%;
 
-    --accent: 12 50% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 45 80% 50%;
+    --accent-foreground: 30 40% 10%;
+
+    --info: 210 65% 55%;
+    --info-foreground: 0 0% 100%;
 
     --destructive: 0 60% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 18% 25%;
-    --input: 220 18% 22%;
-    --ring: 200 55% 50%;
+    --border: 30 15% 22%;
+    --input: 30 15% 18%;
+    --ring: 142 45% 45%;
 
-    --glass-bg: 220 22% 14%;
-    --glass-border: 220 18% 25%;
-    --shadow-glass: 220 25% 8%;
+    --glass-bg: 30 18% 12%;
+    --glass-border: 30 15% 22%;
+    --shadow-glass: 30 25% 5%;
   }
 }
 
@@ -95,19 +102,19 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    background: linear-gradient(135deg, hsl(220 20% 97%) 0%, hsl(200 15% 96%) 100%);
+    background: linear-gradient(135deg, hsl(90 30% 96%) 0%, hsl(45 35% 95%) 50%, hsl(142 25% 94%) 100%);
     min-height: 100vh;
   }
 }
 
-/* Glassmorphism Utilities */
+/* Glassmorphism Utilities - Nature Inspired */
 @layer components {
   .glass-card {
-    background: rgba(255, 255, 255, 0.7);
+    background: linear-gradient(135deg, rgba(255, 253, 245, 0.85) 0%, rgba(240, 255, 240, 0.75) 100%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    border: 1px solid rgba(142, 180, 142, 0.25);
+    box-shadow: 0 8px 32px 0 rgba(45, 75, 45, 0.12);
   }
 
   .glass-card-hover {
@@ -116,21 +123,29 @@ All colors MUST be HSL.
 
   .glass-card-hover:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.25);
+    box-shadow: 0 12px 40px 0 rgba(45, 75, 45, 0.2);
+    border-color: rgba(142, 180, 142, 0.4);
   }
 
   .glass-input {
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 253, 245, 0.6);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(142, 180, 142, 0.3);
   }
 
   .glass-nav {
-    background: rgba(255, 255, 255, 0.8);
+    background: linear-gradient(135deg, rgba(255, 253, 245, 0.9) 0%, rgba(240, 255, 240, 0.85) 100%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 20px 0 rgba(31, 38, 135, 0.1);
+    border-bottom: 1px solid rgba(142, 180, 142, 0.2);
+    box-shadow: 0 4px 20px 0 rgba(45, 75, 45, 0.08);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(142 50% 40%) 0%, hsl(45 85% 45%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
