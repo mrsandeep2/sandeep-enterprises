@@ -85,17 +85,17 @@ const Footer = () => {
           <div className="space-y-4">
             <h4 className="text-lg font-semibold text-foreground">Contact Us</h4>
             <ul className="space-y-3">
+              <li className="flex items-start gap-2 text-muted-foreground text-sm">
+                <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <span>Bettiah Road Jagdishpur, West Champaran, Bihar - 845459<br />Near Taj Hospital</span>
+              </li>
               <li className="flex items-center gap-2 text-muted-foreground text-sm">
-                <MapPin className="h-4 w-4 text-primary" />
-                <span>Main Market, Local Area</span>
+                <span className="text-primary font-medium">Owner:</span>
+                <span>Mantu Kumar</span>
               </li>
               <li className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Phone className="h-4 w-4 text-primary" />
-                <span>+91 98765 43210</span>
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground text-sm">
-                <Mail className="h-4 w-4 text-primary" />
-                <span>sandeep.enterprises@email.com</span>
+                <a href="tel:+919661720706" className="hover:text-primary transition-colors">+91 9661720706</a>
               </li>
             </ul>
           </div>
