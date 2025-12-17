@@ -18,16 +18,16 @@ const checkoutSchema = z.object({
   phone: z.string().trim().min(1, "Phone number is required").max(20, "Phone number must be less than 20 characters").regex(/^[\d\s\-+()]+$/, "Please enter a valid phone number"),
   address: z.string().trim().max(200, "Address must be less than 200 characters").optional(),
   city: z.string().trim().max(100, "City must be less than 100 characters").optional(),
-  postalCode: z.string().trim().max(20, "Postal code must be less than 20 characters").optional(),
-  country: z.string().trim().max(100, "Country must be less than 100 characters").optional(),
+  pinCode: z.string().trim().max(10, "Pin code must be less than 10 characters").optional(),
+  landmark: z.string().trim().max(200, "Landmark must be less than 200 characters").optional(),
   notes: z.string().trim().max(500, "Notes must be less than 500 characters").optional(),
 });
 
 const shippingSchema = z.object({
   address: z.string().trim().min(1, "Street address is required").max(200, "Address must be less than 200 characters"),
   city: z.string().trim().min(1, "City is required").max(100, "City must be less than 100 characters"),
-  postalCode: z.string().trim().min(1, "Postal code is required").max(20, "Postal code must be less than 20 characters"),
-  country: z.string().trim().min(1, "Country is required").max(100, "Country must be less than 100 characters"),
+  pinCode: z.string().trim().min(1, "Pin code is required").max(10, "Pin code must be less than 10 characters"),
+  landmark: z.string().trim().max(200, "Landmark must be less than 200 characters").optional(),
 });
 
 interface CartItem {
@@ -50,8 +50,8 @@ const Checkout = () => {
     phone: "",
     address: "",
     city: "",
-    postalCode: "",
-    country: "",
+    pinCode: "",
+    landmark: "",
     notes: "",
   });
 
@@ -71,13 +71,13 @@ const Checkout = () => {
   const calculateDeliveryFee = () => {
     switch (deliveryMethod) {
       case "express":
-        return 15.0;
+        return 150.0;
       case "standard":
-        return 5.0;
+        return 50.0;
       case "pickup":
         return 0.0;
       default:
-        return 5.0;
+        return 50.0;
     }
   };
 
@@ -110,8 +110,8 @@ const Checkout = () => {
       const shippingValidation = shippingSchema.safeParse({
         address: formData.address,
         city: formData.city,
-        postalCode: formData.postalCode,
-        country: formData.country,
+        pinCode: formData.pinCode,
+        landmark: formData.landmark,
       });
       
       if (!shippingValidation.success) {
@@ -156,8 +156,8 @@ const Checkout = () => {
         fullName: validatedData.fullName,
         address: formData.address?.trim(),
         city: formData.city?.trim(),
-        postalCode: formData.postalCode?.trim(),
-        country: formData.country?.trim(),
+        pinCode: formData.pinCode?.trim(),
+        landmark: formData.landmark?.trim(),
       };
 
       // Create order
@@ -287,7 +287,7 @@ const Checkout = () => {
                     <Label htmlFor="standard" className="flex-1 cursor-pointer">
                       <div className="flex justify-between">
                         <span>Standard Delivery (5-7 days)</span>
-                        <span className="font-semibold">$5.00</span>
+                        <span className="font-semibold">₹50</span>
                       </div>
                     </Label>
                   </div>
@@ -296,7 +296,7 @@ const Checkout = () => {
                     <Label htmlFor="express" className="flex-1 cursor-pointer">
                       <div className="flex justify-between">
                         <span>Express Delivery (2-3 days)</span>
-                        <span className="font-semibold">$15.00</span>
+                        <span className="font-semibold">₹150</span>
                       </div>
                     </Label>
                   </div>
@@ -321,7 +321,7 @@ const Checkout = () => {
                   <h2 className="text-xl font-semibold mb-4">Shipping Address</h2>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="address">Street Address *</Label>
+                      <Label htmlFor="address">Address *</Label>
                       <Input
                         id="address"
                         name="address"
@@ -342,24 +342,24 @@ const Checkout = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="postalCode">Postal Code *</Label>
+                        <Label htmlFor="pinCode">Pin Code *</Label>
                         <Input
-                          id="postalCode"
-                          name="postalCode"
-                          value={formData.postalCode}
+                          id="pinCode"
+                          name="pinCode"
+                          value={formData.pinCode}
                           onChange={handleInputChange}
                           required
                         />
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="country">Country *</Label>
+                      <Label htmlFor="landmark">Landmark</Label>
                       <Input
-                        id="country"
-                        name="country"
-                        value={formData.country}
+                        id="landmark"
+                        name="landmark"
+                        value={formData.landmark}
                         onChange={handleInputChange}
-                        required
+                        placeholder="Near temple, opposite school, etc."
                       />
                     </div>
                   </div>
@@ -401,22 +401,22 @@ const Checkout = () => {
                     <span>
                       {item.name} x {item.quantity}
                     </span>
-                    <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
               <div className="border-t border-border pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal</span>
-                  <span>${calculateTotal()}</span>
+                  <span>₹{calculateTotal()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Delivery</span>
-                  <span>${deliveryFee.toFixed(2)}</span>
+                  <span>₹{deliveryFee.toFixed(2)}</span>
                 </div>
                 <div className="border-t border-border pt-2 flex justify-between font-semibold text-lg">
                   <span>Total</span>
-                  <span>${grandTotal}</span>
+                  <span>₹{grandTotal}</span>
                 </div>
               </div>
             </div>

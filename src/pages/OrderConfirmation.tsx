@@ -15,8 +15,8 @@ interface Order {
     fullName: string;
     address: string;
     city: string;
-    postalCode: string;
-    country: string;
+    pinCode: string;
+    landmark?: string;
   } | null;
 }
 
@@ -148,17 +148,19 @@ const OrderConfirmation = () => {
                   {order.shipping_address.address}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {order.shipping_address.city}, {order.shipping_address.postalCode}
+                  {order.shipping_address.city}, {order.shipping_address.pinCode}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {order.shipping_address.country}
-                </p>
+                {order.shipping_address.landmark && (
+                  <p className="text-sm text-muted-foreground">
+                    Landmark: {order.shipping_address.landmark}
+                  </p>
+                )}
               </div>
             )}
 
             <div className="flex justify-between items-center p-4 rounded-xl border border-border">
               <span className="font-semibold">Total Paid</span>
-              <span className="text-xl font-bold">${order.total.toFixed(2)}</span>
+              <span className="text-xl font-bold">₹{order.total.toFixed(2)}</span>
             </div>
           </div>
 
