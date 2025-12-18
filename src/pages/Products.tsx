@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
 import { Navbar } from "@/components/Navbar";
+import { HeroSection } from "@/components/HeroSection";
 import { Loader2, ChevronDown, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -57,6 +58,7 @@ const Products = () => {
   const [selectedAttaVariety, setSelectedAttaVariety] = useState<string | null>(null);
   const [selectedChokarVariety, setSelectedChokarVariety] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const productsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -76,6 +78,10 @@ const Products = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const scrollToProducts = () => {
+    productsRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const categories = ["All", ...new Set(products.map((p) => p.category).filter(Boolean))];
@@ -147,13 +153,17 @@ const Products = () => {
     <div className="min-h-screen">
       <Navbar />
       
-      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
+      {/* Hero Section */}
+      <HeroSection onScrollToProducts={scrollToProducts} />
+      
+      {/* Products Section */}
+      <main ref={productsRef} className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
         <div className="text-center mb-6 sm:mb-10 space-y-2 sm:space-y-4">
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-            Sandeep Enterprises
-          </h1>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+            Our Products
+          </h2>
           <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Quality Chawal, Atta, Kapila and more for your daily needs
+            Browse our wide range of premium quality products
           </p>
         </div>
 
