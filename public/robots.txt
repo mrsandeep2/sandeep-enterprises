@@ -1,8 +1,12 @@
+# Robots.txt for Sandeep Enterprises
+
 User-agent: Googlebot
 Allow: /
+Crawl-delay: 1
 
 User-agent: Bingbot
 Allow: /
+Crawl-delay: 1
 
 User-agent: Twitterbot
 Allow: /
@@ -12,3 +16,11 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Sitemap location
+Sitemap: https://sandeep-enterprises.lovable.app/sitemap.xml
+
+# Disallow admin pages from indexing
+Disallow: /admin
+Disallow: /checkout
+Disallow: /order-confirmation

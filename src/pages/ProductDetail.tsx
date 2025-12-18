@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
+import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, GitCompare, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -146,8 +147,14 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen">
+      <SEO 
+        title={`${product.name} - Buy Online | Sandeep Enterprises`}
+        description={`Buy ${product.name} at ₹${product.price}. ${product.description || 'Premium quality product from Sandeep Enterprises.'} Fast delivery available.`}
+        keywords={`${product.name}, ${product.category || 'grocery'}, buy online, sandeep enterprises`}
+        image={product.image_url || "/products/basmati-rice.jpg"}
+        type="product"
+      />
       <Navbar />
-      
       <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
         <Button
           variant="ghost"

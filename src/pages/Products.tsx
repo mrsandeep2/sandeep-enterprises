@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
 import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
+import { SEO } from "@/components/SEO";
 import { Loader2, ChevronDown, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -151,6 +152,11 @@ const Products = () => {
 
   return (
     <div className="min-h-screen">
+      <SEO 
+        title="Sandeep Enterprises - Premium Rice, Atta, Kapila Feed | Wholesale Prices"
+        description="Buy premium quality Basmati Rice, Sona Masoori, Parmal Rice, Wheat Atta, Kapila Cattle Feed at wholesale prices. Trusted supplier with fast delivery. Call +91 94314 11224"
+        keywords="basmati rice, sona masoori rice, parmal rice, wheat atta, kapila feed, cattle feed, rice wholesale, sandeep enterprises"
+      />
       <Navbar />
       
       {/* Hero Section */}
