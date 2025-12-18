@@ -259,7 +259,7 @@ const Checkout = () => {
 
       navigate(`/order-confirmation?orderId=${order.id}`);
     } catch (error) {
-      console.error("Error placing order:", error);
+      if (import.meta.env.DEV) console.error("Error placing order:", error);
       toast({
         title: "Error",
         description: "Failed to place order. Please try again.",

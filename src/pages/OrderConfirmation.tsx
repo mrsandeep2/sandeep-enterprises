@@ -50,7 +50,7 @@ const OrderConfirmation = () => {
         shipping_address: data.shipping_address as Order["shipping_address"]
       });
     } catch (error) {
-      console.error("Error fetching order:", error);
+      if (import.meta.env.DEV) console.error("Error fetching order:", error);
     } finally {
       setLoading(false);
     }
