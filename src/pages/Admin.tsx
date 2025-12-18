@@ -85,7 +85,7 @@ const Admin = () => {
         .maybeSingle();
 
       if (roleError) {
-        console.error("Error checking role:", roleError);
+        if (import.meta.env.DEV) console.error("Error checking role:", roleError);
         setIsAdmin(false);
         setLoading(false);
         return;
@@ -99,7 +99,7 @@ const Admin = () => {
         setLoading(false);
       }
     } catch (error) {
-      console.error("Error checking auth:", error);
+      if (import.meta.env.DEV) console.error("Error checking auth:", error);
       setIsAdmin(false);
       setLoading(false);
     }
@@ -115,7 +115,7 @@ const Admin = () => {
       if (error) throw error;
       setProducts(data || []);
     } catch (error) {
-      console.error("Error fetching products:", error);
+      if (import.meta.env.DEV) console.error("Error fetching products:", error);
     } finally {
       setLoading(false);
     }
