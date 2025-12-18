@@ -149,8 +149,65 @@ const Checkout = () => {
         return;
       }
 
+      // SERVER-SIDE PRICE VERIFICATION: Fetch current prices from database
+      const productIds = cart.map(item => item.id);
+      const { data: currentProducts, error: productsError } = await supabase
+        .from("products")
+        .select("id, price, name, stock")
+        .in("id", productIds);
+
+      if (productsError) {
+        throw new Error("Failed to verify product prices");
+      }
+
+      if (!currentProducts || currentProducts.length !== cart.length) {
+        toast({
+          title: "Product unavailable",
+          description: "Some products in your cart are no longer available. Please refresh and try again.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Verify stock availability and build verified order items with server prices
+      const verifiedItems: { product_id: string; quantity: number; price: number }[] = [];
+      let verifiedSubtotal = 0;
+
+      for (const cartItem of cart) {
+        const currentProduct = currentProducts.find(p => p.id === cartItem.id);
+        if (!currentProduct) {
+          toast({
+            title: "Product not found",
+            description: `${cartItem.name} is no longer available.`,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Check stock availability
+        if (currentProduct.stock !== null && currentProduct.stock < cartItem.quantity) {
+          toast({
+            title: "Insufficient stock",
+            description: `Only ${currentProduct.stock} units of ${currentProduct.name} are available.`,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Use server-side price, NOT client-supplied price
+        verifiedItems.push({
+          product_id: cartItem.id,
+          quantity: cartItem.quantity,
+          price: currentProduct.price,
+        });
+        verifiedSubtotal += currentProduct.price * cartItem.quantity;
+      }
+
       const deliveryFee = calculateDeliveryFee();
-      const total = parseFloat(calculateTotal()) + deliveryFee;
+      const total = verifiedSubtotal + deliveryFee;
 
       const shippingAddress = deliveryMethod === "pickup" ? null : {
         fullName: validatedData.fullName,
@@ -160,7 +217,7 @@ const Checkout = () => {
         landmark: formData.landmark?.trim(),
       };
 
-      // Create order
+      // Create order with server-verified total
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -177,10 +234,10 @@ const Checkout = () => {
 
       if (orderError) throw orderError;
 
-      // Create order items
-      const orderItems = cart.map((item) => ({
+      // Create order items with server-verified prices
+      const orderItems = verifiedItems.map((item) => ({
         order_id: order.id,
-        product_id: item.id,
+        product_id: item.product_id,
         quantity: item.quantity,
         price: item.price,
       }));
