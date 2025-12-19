@@ -4,6 +4,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { SEO } from "@/components/SEO";
+import { AISearch } from "@/components/AISearch";
 import { Loader2, ChevronDown, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -59,6 +60,7 @@ const Products = () => {
   const [selectedAttaVariety, setSelectedAttaVariety] = useState<string | null>(null);
   const [selectedChokarVariety, setSelectedChokarVariety] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [aiSearchResults, setAiSearchResults] = useState<Product[] | null>(null);
   const productsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,7 +89,12 @@ const Products = () => {
 
   const categories = ["All", ...new Set(products.map((p) => p.category).filter(Boolean))];
   
+  // Use AI search results if available, otherwise use regular filtering
   const filteredProducts = (() => {
+    if (aiSearchResults !== null) {
+      return aiSearchResults;
+    }
+    
     let filtered = products;
     
     // Apply search filter first
@@ -117,6 +124,16 @@ const Products = () => {
     }
     return filtered.filter((p) => p.category === selectedCategory);
   })();
+
+  const handleAISearchResults = (results: Product[] | null) => {
+    setAiSearchResults(results);
+    setSelectedCategory("All");
+    setSearchQuery("");
+  };
+
+  const handleClearAISearch = () => {
+    setAiSearchResults(null);
+  };
 
   const handleCategoryClick = (category: string) => {
     if (category !== "Chawal") setSelectedChawalVariety(null);
@@ -172,6 +189,17 @@ const Products = () => {
             Browse our wide range of premium quality products
           </p>
         </div>
+
+        {/* AI Search */}
+        <AISearch onResults={handleAISearchResults} onClear={handleClearAISearch} />
+
+        {aiSearchResults !== null && (
+          <div className="text-center mb-4">
+            <span className="text-sm text-muted-foreground">
+              Showing AI search results ({aiSearchResults.length} found)
+            </span>
+          </div>
+        )}
 
         {/* Search Bar */}
         <div className="max-w-md mx-auto mb-6 sm:mb-8">

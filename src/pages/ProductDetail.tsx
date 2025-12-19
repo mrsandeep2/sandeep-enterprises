@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { SEO } from "@/components/SEO";
+import { AIRecommendations } from "@/components/AIRecommendations";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, GitCompare, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -258,6 +259,9 @@ const ProductDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* AI Recommendations */}
+        <AIRecommendations currentProductId={product.id} category={product.category} />
 
         {/* Similar Products Section */}
         {similarProducts.length > 0 && (
