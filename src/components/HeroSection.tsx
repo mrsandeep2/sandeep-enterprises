@@ -50,10 +50,10 @@ export const HeroSection = ({ onScrollToProducts }: HeroSectionProps) => {
               <ArrowDown className="ml-2 h-5 w-5 group-hover:translate-y-1 transition-transform" />
             </Button>
             <a 
-              href="tel:+919431411224"
+              href="tel:+919661720706"
               className="glass-card glass-card-hover px-8 py-3 rounded-full font-semibold text-primary hover:text-primary/80 transition-colors"
             >
-              Call: +91 94314 11224
+              Call: +91 96617 20706
             </a>
           </div>
         </div>
