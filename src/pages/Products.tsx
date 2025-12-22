@@ -258,28 +258,29 @@ const Products = () => {
         {/* AI Search */}
         <AISearch onResults={handleAISearchResults} onClear={handleClearAISearch} />
 
-        {/* Show filters and results info only after search */}
-        {aiSearchResults !== null && (
-          <>
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-              <span className="text-sm text-muted-foreground">
-                Found <span className="font-medium text-foreground">{filteredProducts.length}</span> products
-              </span>
-              
-              {/* Product Filters - Dropdown style */}
-              <ProductFilters
-                categories={categories as string[]}
-                selectedCategory={selectedCategory}
-                onCategoryChange={handleCategoryClick}
-                priceRange={priceRange}
-                maxPrice={maxPrice}
-                onPriceRangeChange={handlePriceRangeChange}
-                onReset={handleResetFilters}
-                hasActiveFilters={hasActiveFilters}
-              />
-            </div>
-          </>
-        )}
+        {/* Filters and results info - always visible */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <span className="text-sm text-muted-foreground">
+            {aiSearchResults !== null ? (
+              <>Found <span className="font-medium text-foreground">{filteredProducts.length}</span> products</>
+            ) : (
+              <span className="font-medium text-foreground">{filteredProducts.length}</span>
+            )}
+            {aiSearchResults !== null && " matching your search"}
+          </span>
+          
+          {/* Product Filters - Dropdown style */}
+          <ProductFilters
+            categories={categories as string[]}
+            selectedCategory={selectedCategory}
+            onCategoryChange={handleCategoryClick}
+            priceRange={priceRange}
+            maxPrice={maxPrice}
+            onPriceRangeChange={handlePriceRangeChange}
+            onReset={handleResetFilters}
+            hasActiveFilters={hasActiveFilters}
+          />
+        </div>
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
