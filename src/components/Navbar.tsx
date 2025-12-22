@@ -66,20 +66,34 @@ export const Navbar = () => {
   }, [user]);
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to log out",
-        variant: "destructive",
-      });
-    } else {
+    try {
+      // Clear local state first to ensure UI updates
+      setUser(null);
+      setIsAdmin(false);
+      setMobileMenuOpen(false);
+      
+      // Attempt to sign out - ignore session_not_found errors
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      
+      if (error && !error.message?.includes('session_not_found')) {
+        console.error('Logout error:', error);
+      }
+      
       toast({
         title: "Success",
         description: "Logged out successfully",
       });
+      
+      // Navigate to home page
+      window.location.href = '/';
+    } catch (error) {
+      // Even if there's an error, we've cleared local state
+      toast({
+        title: "Success",
+        description: "Logged out successfully",
+      });
+      window.location.href = '/';
     }
-    setMobileMenuOpen(false);
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -149,15 +163,17 @@ export const Navbar = () => {
 
             {user ? (
               <>
-                <Link
-                  to="/profile"
-                  className={`flex items-center gap-1 transition-colors ${
-                    isActive("/profile") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
-                  }`}
-                >
-                  <User className="h-4 w-4" />
-                  Profile
-                </Link>
+                {!isAdmin && (
+                  <Link
+                    to="/profile"
+                    className={`flex items-center gap-1 transition-colors ${
+                      isActive("/profile") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
+                    }`}
+                  >
+                    <User className="h-4 w-4" />
+                    Profile
+                  </Link>
+                )}
                 <Button onClick={handleLogout} variant="ghost" size="sm" className="gap-2">
                   <LogOut className="h-4 w-4" />
                   Logout
@@ -244,16 +260,18 @@ export const Navbar = () => {
 
             {user ? (
               <>
-                <Link
-                  to="/profile"
-                  onClick={closeMobileMenu}
-                  className={`flex items-center gap-2 py-2 transition-colors ${
-                    isActive("/profile") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
-                  }`}
-                >
-                  <User className="h-4 w-4" />
-                  My Profile & Orders
-                </Link>
+                {!isAdmin && (
+                  <Link
+                    to="/profile"
+                    onClick={closeMobileMenu}
+                    className={`flex items-center gap-2 py-2 transition-colors ${
+                      isActive("/profile") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
+                    }`}
+                  >
+                    <User className="h-4 w-4" />
+                    My Profile & Orders
+                  </Link>
+                )}
                 <Button onClick={handleLogout} variant="ghost" className="w-full justify-start gap-2 px-0">
                   <LogOut className="h-4 w-4" />
                   Logout

@@ -247,6 +247,17 @@ const Profile = () => {
         return;
       }
 
+      // Check if user is admin - redirect them to admin page
+      const { data: isAdmin } = await supabase.rpc('has_role', {
+        _user_id: session.user.id,
+        _role: 'admin'
+      });
+      
+      if (isAdmin) {
+        navigate("/admin");
+        return;
+      }
+
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
@@ -301,12 +312,16 @@ const Profile = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (error) {
+      // Ignore errors
+    }
     toast({
       title: "Logged out",
       description: "You have been successfully logged out.",
     });
-    navigate("/");
+    window.location.href = '/';
   };
 
   const handleSaveProfile = async () => {
