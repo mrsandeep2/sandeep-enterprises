@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Filter, X, ChevronDown } from 'lucide-react';
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
 
 interface ProductFiltersProps {
   categories: string[];
@@ -29,8 +31,8 @@ export const ProductFilters = ({
   onReset,
   hasActiveFilters,
 }: ProductFiltersProps) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [localPriceRange, setLocalPriceRange] = useState<[number, number]>(priceRange);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     setLocalPriceRange(priceRange);
@@ -49,200 +51,132 @@ export const ProductFilters = ({
     return `₹${price.toLocaleString('en-IN')}`;
   };
 
+  const handleQuickPrice = (min: number, max: number) => {
+    setLocalPriceRange([min, max]);
+    onPriceRangeChange([min, max]);
+  };
+
   return (
-    <div className="mb-6">
-      {/* Mobile Filter Toggle */}
-      <div className="lg:hidden mb-4">
-        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full justify-between rounded-full border-primary/20"
-            >
-              <span className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                Filters
-                {hasActiveFilters && (
-                  <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
-                    Active
-                  </span>
-                )}
-              </span>
-              {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-4">
-            <FilterContent
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onCategoryChange={onCategoryChange}
-              localPriceRange={localPriceRange}
-              maxPrice={maxPrice}
-              handlePriceChange={handlePriceChange}
-              applyPriceFilter={applyPriceFilter}
-              formatPrice={formatPrice}
-              onReset={onReset}
-              hasActiveFilters={hasActiveFilters}
-            />
-          </CollapsibleContent>
-        </Collapsible>
-      </div>
-
-      {/* Desktop Filters */}
-      <div className="hidden lg:block">
-        <FilterContent
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onCategoryChange={onCategoryChange}
-          localPriceRange={localPriceRange}
-          maxPrice={maxPrice}
-          handlePriceChange={handlePriceChange}
-          applyPriceFilter={applyPriceFilter}
-          formatPrice={formatPrice}
-          onReset={onReset}
-          hasActiveFilters={hasActiveFilters}
-        />
-      </div>
-    </div>
-  );
-};
-
-interface FilterContentProps {
-  categories: string[];
-  selectedCategory: string;
-  onCategoryChange: (category: string) => void;
-  localPriceRange: [number, number];
-  maxPrice: number;
-  handlePriceChange: (values: number[]) => void;
-  applyPriceFilter: () => void;
-  formatPrice: (price: number) => string;
-  onReset: () => void;
-  hasActiveFilters: boolean;
-}
-
-const FilterContent = ({
-  categories,
-  selectedCategory,
-  onCategoryChange,
-  localPriceRange,
-  maxPrice,
-  handlePriceChange,
-  applyPriceFilter,
-  formatPrice,
-  onReset,
-  hasActiveFilters,
-}: FilterContentProps) => {
-  return (
-    <div className="glass-card rounded-2xl p-4 sm:p-6 space-y-6">
-      {/* Header with Reset */}
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-foreground flex items-center gap-2">
-          <Filter className="h-4 w-4 text-primary" />
-          Filters
-        </h3>
-        {hasActiveFilters && (
+    <div className="flex flex-wrap items-center gap-3 mb-6">
+      {/* Category Dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button
-            variant="ghost"
-            size="sm"
-            onClick={onReset}
-            className="text-muted-foreground hover:text-foreground h-8 px-2"
+            variant="outline"
+            className="rounded-full border-primary/20 gap-2"
           >
-            <X className="h-3 w-3 mr-1" />
-            Reset
+            <Filter className="h-4 w-4" />
+            {selectedCategory === "All" ? "Category" : selectedCategory}
+            <ChevronDown className="h-4 w-4" />
           </Button>
-        )}
-      </div>
-
-      {/* Category Filter */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium text-muted-foreground">Category</h4>
-        <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => onCategoryChange(category)}
-              className={`px-4 py-1.5 text-sm rounded-full transition-all ${
-                selectedCategory === category
-                  ? 'bg-primary text-primary-foreground font-medium'
-                  : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Price Range Filter */}
-      <div className="space-y-4">
-        <h4 className="text-sm font-medium text-muted-foreground">Price Range</h4>
-        <div className="px-2">
-          <Slider
-            value={localPriceRange}
-            onValueChange={handlePriceChange}
-            min={0}
-            max={maxPrice}
-            step={50}
-            className="w-full"
-          />
-          <div className="flex justify-between mt-3 text-sm">
-            <span className="text-foreground font-medium">{formatPrice(localPriceRange[0])}</span>
-            <span className="text-muted-foreground">to</span>
-            <span className="text-foreground font-medium">{formatPrice(localPriceRange[1])}</span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="bg-card border border-border shadow-lg z-50 min-w-[180px]">
+          <DropdownMenuLabel className="text-muted-foreground text-xs">Select Category</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <div className="max-h-[300px] overflow-y-auto p-1">
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => {
+                  onCategoryChange(category);
+                }}
+                className={`w-full px-3 py-2 text-left text-sm rounded-md transition-colors ${
+                  selectedCategory === category
+                    ? 'bg-primary text-primary-foreground font-medium'
+                    : 'hover:bg-muted text-foreground'
+                }`}
+              >
+                {category}
+              </button>
+            ))}
           </div>
-        </div>
-        <Button
-          onClick={applyPriceFilter}
-          variant="outline"
-          size="sm"
-          className="w-full rounded-full border-primary/20 hover:bg-primary hover:text-primary-foreground"
-        >
-          Apply Price Filter
-        </Button>
-      </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-      {/* Quick Price Ranges */}
-      <div className="space-y-2">
-        <h4 className="text-sm font-medium text-muted-foreground">Quick Select</h4>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => {
-              handlePriceChange([0, 500]);
-              setTimeout(applyPriceFilter, 0);
-            }}
-            className="px-3 py-2 text-xs rounded-lg bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+      {/* Price Range Dropdown */}
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            className="rounded-full border-primary/20 gap-2"
           >
-            Under ₹500
-          </button>
-          <button
+            Price: {formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="bg-card border border-border shadow-lg z-50 w-[280px] p-4" align="start">
+          <DropdownMenuLabel className="text-muted-foreground text-xs px-0 mb-3">Price Range</DropdownMenuLabel>
+          
+          {/* Slider */}
+          <div className="mb-4">
+            <Slider
+              value={localPriceRange}
+              onValueChange={handlePriceChange}
+              min={0}
+              max={maxPrice}
+              step={50}
+              className="w-full"
+            />
+            <div className="flex justify-between mt-2 text-sm">
+              <span className="text-foreground font-medium">{formatPrice(localPriceRange[0])}</span>
+              <span className="text-muted-foreground">to</span>
+              <span className="text-foreground font-medium">{formatPrice(localPriceRange[1])}</span>
+            </div>
+          </div>
+
+          {/* Quick Select */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <button
+              onClick={() => handleQuickPrice(0, 500)}
+              className="px-2 py-1.5 text-xs rounded-md bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              Under ₹500
+            </button>
+            <button
+              onClick={() => handleQuickPrice(500, 1000)}
+              className="px-2 py-1.5 text-xs rounded-md bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              ₹500 - ₹1,000
+            </button>
+            <button
+              onClick={() => handleQuickPrice(1000, 2000)}
+              className="px-2 py-1.5 text-xs rounded-md bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              ₹1,000 - ₹2,000
+            </button>
+            <button
+              onClick={() => handleQuickPrice(2000, maxPrice)}
+              className="px-2 py-1.5 text-xs rounded-md bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              Above ₹2,000
+            </button>
+          </div>
+
+          <Button
             onClick={() => {
-              handlePriceChange([500, 1000]);
-              setTimeout(applyPriceFilter, 0);
+              applyPriceFilter();
+              setIsOpen(false);
             }}
-            className="px-3 py-2 text-xs rounded-lg bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            size="sm"
+            className="w-full rounded-full"
           >
-            ₹500 - ₹1,000
-          </button>
-          <button
-            onClick={() => {
-              handlePriceChange([1000, 2000]);
-              setTimeout(applyPriceFilter, 0);
-            }}
-            className="px-3 py-2 text-xs rounded-lg bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          >
-            ₹1,000 - ₹2,000
-          </button>
-          <button
-            onClick={() => {
-              handlePriceChange([2000, maxPrice]);
-              setTimeout(applyPriceFilter, 0);
-            }}
-            className="px-3 py-2 text-xs rounded-lg bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          >
-            Above ₹2,000
-          </button>
-        </div>
-      </div>
+            Apply
+          </Button>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Reset Button */}
+      {hasActiveFilters && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onReset}
+          className="text-muted-foreground hover:text-foreground rounded-full gap-1"
+        >
+          <X className="h-3 w-3" />
+          Reset
+        </Button>
+      )}
     </div>
   );
 };

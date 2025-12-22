@@ -212,33 +212,28 @@ const Products = () => {
         {/* AI Search */}
         <AISearch onResults={handleAISearchResults} onClear={handleClearAISearch} />
 
+        {/* Show filters and results info only after search */}
         {aiSearchResults !== null && (
-          <div className="text-center mb-4">
-            <span className="text-sm text-muted-foreground">
-              Showing AI search results ({aiSearchResults.length} found)
-            </span>
-          </div>
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+              <span className="text-sm text-muted-foreground">
+                Found <span className="font-medium text-foreground">{filteredProducts.length}</span> products
+              </span>
+              
+              {/* Product Filters - Dropdown style */}
+              <ProductFilters
+                categories={categories as string[]}
+                selectedCategory={selectedCategory}
+                onCategoryChange={handleCategoryClick}
+                priceRange={priceRange}
+                maxPrice={maxPrice}
+                onPriceRangeChange={handlePriceRangeChange}
+                onReset={handleResetFilters}
+                hasActiveFilters={hasActiveFilters}
+              />
+            </div>
+          </>
         )}
-
-        {/* Product Filters */}
-        <ProductFilters
-          categories={categories as string[]}
-          selectedCategory={selectedCategory}
-          onCategoryChange={handleCategoryClick}
-          priceRange={priceRange}
-          maxPrice={maxPrice}
-          onPriceRangeChange={handlePriceRangeChange}
-          onReset={handleResetFilters}
-          hasActiveFilters={hasActiveFilters}
-        />
-
-        {/* Results count */}
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm text-muted-foreground">
-            Showing <span className="font-medium text-foreground">{filteredProducts.length}</span> products
-            {hasActiveFilters && " (filtered)"}
-          </p>
-        </div>
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
