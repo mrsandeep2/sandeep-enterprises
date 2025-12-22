@@ -148,10 +148,21 @@ export const Navbar = () => {
             </Link>
 
             {user ? (
-              <Button onClick={handleLogout} variant="ghost" size="sm" className="gap-2">
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
+              <>
+                <Link
+                  to="/profile"
+                  className={`flex items-center gap-1 transition-colors ${
+                    isActive("/profile") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
+                  }`}
+                >
+                  <User className="h-4 w-4" />
+                  Profile
+                </Link>
+                <Button onClick={handleLogout} variant="ghost" size="sm" className="gap-2">
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </Button>
+              </>
             ) : (
               <Link to="/auth">
                 <Button variant="default" size="sm" className="gap-2">
@@ -232,10 +243,22 @@ export const Navbar = () => {
             )}
 
             {user ? (
-              <Button onClick={handleLogout} variant="ghost" className="w-full justify-start gap-2 px-0">
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
+              <>
+                <Link
+                  to="/profile"
+                  onClick={closeMobileMenu}
+                  className={`flex items-center gap-2 py-2 transition-colors ${
+                    isActive("/profile") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
+                  }`}
+                >
+                  <User className="h-4 w-4" />
+                  My Profile & Orders
+                </Link>
+                <Button onClick={handleLogout} variant="ghost" className="w-full justify-start gap-2 px-0">
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </Button>
+              </>
             ) : (
               <Link to="/auth" onClick={closeMobileMenu}>
                 <Button variant="default" className="w-full gap-2">
