@@ -149,17 +149,19 @@ export const Navbar = () => {
               </>
             )}
 
-            <Link
-              to="/cart"
-              className="relative text-foreground/80 hover:text-primary transition-colors"
-            >
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
+            {!isAdmin && (
+              <Link
+                to="/cart"
+                className="relative text-foreground/80 hover:text-primary transition-colors"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {user ? (
               <>
@@ -191,14 +193,16 @@ export const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-4">
-            <Link to="/cart" className="relative text-foreground/80 hover:text-primary transition-colors">
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
+            {!isAdmin && (
+              <Link to="/cart" className="relative text-foreground/80 hover:text-primary transition-colors">
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            )}
             <Button
               variant="ghost"
               size="icon"
