@@ -102,37 +102,52 @@ export type Database = {
           category: string | null
           created_at: string | null
           description: string | null
+          discount: number | null
           id: string
           image_url: string | null
+          images: string[] | null
+          is_active: boolean | null
           name: string
           price: number
           specifications: Json | null
           stock: number | null
+          sub_category: string | null
           updated_at: string | null
+          weight: string | null
         }
         Insert: {
           category?: string | null
           created_at?: string | null
           description?: string | null
+          discount?: number | null
           id?: string
           image_url?: string | null
+          images?: string[] | null
+          is_active?: boolean | null
           name: string
           price: number
           specifications?: Json | null
           stock?: number | null
+          sub_category?: string | null
           updated_at?: string | null
+          weight?: string | null
         }
         Update: {
           category?: string | null
           created_at?: string | null
           description?: string | null
+          discount?: number | null
           id?: string
           image_url?: string | null
+          images?: string[] | null
+          is_active?: boolean | null
           name?: string
           price?: number
           specifications?: Json | null
           stock?: number | null
+          sub_category?: string | null
           updated_at?: string | null
+          weight?: string | null
         }
         Relationships: []
       }
