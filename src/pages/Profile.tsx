@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
@@ -19,6 +21,13 @@ import {
   Phone,
   MapPin,
   IndianRupee,
+  LogOut,
+  Bell,
+  Edit,
+  Plus,
+  Trash2,
+  Save,
+  X,
 } from "lucide-react";
 import {
   Card,
@@ -34,6 +43,25 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface OrderItem {
   id: string;
@@ -60,11 +88,32 @@ interface Order {
   order_items?: OrderItem[];
 }
 
+interface SavedAddress {
+  id: string;
+  label: string;
+  street: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault?: boolean;
+}
+
 interface Profile {
   id: string;
   username: string | null;
   email: string | null;
+  phone: string | null;
   created_at: string | null;
+  saved_addresses: SavedAddress[] | null;
+}
+
+interface Notification {
+  id: string;
+  type: string;
+  message: string;
+  productName?: string;
+  timestamp: Date;
+  read: boolean;
 }
 
 const ORDER_STATUSES = [
@@ -91,6 +140,31 @@ const Profile = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Edit profile state
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editUsername, setEditUsername] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  
+  // Address management state
+  const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<SavedAddress | null>(null);
+  const [addressForm, setAddressForm] = useState({
+    label: "",
+    street: "",
+    city: "",
+    state: "",
+    pincode: "",
+    isDefault: false,
+  });
+  const [savingAddress, setSavingAddress] = useState(false);
+  
+  // Cancel order state
+  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState(false);
 
   useEffect(() => {
     checkAuthAndFetchData();
@@ -98,7 +172,7 @@ const Profile = () => {
 
   useEffect(() => {
     // Subscribe to real-time order status updates
-    const channel = supabase
+    const orderChannel = supabase
       .channel('user-orders-realtime')
       .on(
         'postgres_changes',
@@ -116,7 +190,6 @@ const Profile = () => {
                 : order
             );
             
-            // Show toast for status update
             const existingOrder = prev.find(o => o.id === updatedOrder.id);
             if (existingOrder && existingOrder.status !== updatedOrder.status) {
               const statusConfig = getStatusConfig(updatedOrder.status);
@@ -132,8 +205,39 @@ const Profile = () => {
       )
       .subscribe();
 
+    // Subscribe to new products for notifications
+    const productChannel = supabase
+      .channel('new-products-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'products'
+        },
+        (payload) => {
+          const newProduct = payload.new as { name: string; id: string };
+          const notification: Notification = {
+            id: crypto.randomUUID(),
+            type: 'new_product',
+            message: `New product added: ${newProduct.name}`,
+            productName: newProduct.name,
+            timestamp: new Date(),
+            read: false,
+          };
+          setNotifications(prev => [notification, ...prev]);
+          setUnreadCount(prev => prev + 1);
+          toast({
+            title: "🎉 New Product Added!",
+            description: newProduct.name,
+          });
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(orderChannel);
+      supabase.removeChannel(productChannel);
     };
   }, [toast]);
 
@@ -145,7 +249,6 @@ const Profile = () => {
         return;
       }
 
-      // Fetch profile
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
@@ -154,11 +257,19 @@ const Profile = () => {
 
       if (profileError) {
         console.error("Error fetching profile:", profileError);
-      } else {
-        setProfile(profileData);
+      } else if (profileData) {
+        const savedAddresses = Array.isArray(profileData.saved_addresses) 
+          ? (profileData.saved_addresses as unknown as SavedAddress[])
+          : [];
+        const parsedProfile: Profile = {
+          ...profileData,
+          saved_addresses: savedAddresses,
+        };
+        setProfile(parsedProfile);
+        setEditUsername(parsedProfile.username || "");
+        setEditPhone(parsedProfile.phone || "");
       }
 
-      // Fetch orders with items
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(`
@@ -189,6 +300,204 @@ const Profile = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate("/");
+  };
+
+  const handleSaveProfile = async () => {
+    if (!profile) return;
+    setSavingProfile(true);
+    
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        username: editUsername.trim(),
+        phone: editPhone.trim() || null,
+      })
+      .eq("id", profile.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+    } else {
+      setProfile(prev => prev ? { ...prev, username: editUsername, phone: editPhone } : null);
+      setIsEditingProfile(false);
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully.",
+      });
+    }
+    setSavingProfile(false);
+  };
+
+  const handleAddAddress = () => {
+    setEditingAddress(null);
+    setAddressForm({ label: "", street: "", city: "", state: "", pincode: "", isDefault: false });
+    setIsAddressDialogOpen(true);
+  };
+
+  const handleEditAddress = (address: SavedAddress) => {
+    setEditingAddress(address);
+    setAddressForm({
+      label: address.label,
+      street: address.street,
+      city: address.city,
+      state: address.state,
+      pincode: address.pincode,
+      isDefault: address.isDefault || false,
+    });
+    setIsAddressDialogOpen(true);
+  };
+
+  const handleSaveAddress = async () => {
+    if (!profile) return;
+    setSavingAddress(true);
+
+    const currentAddresses: SavedAddress[] = profile.saved_addresses || [];
+    let newAddresses: SavedAddress[];
+
+    if (editingAddress) {
+      newAddresses = currentAddresses.map(addr => 
+        addr.id === editingAddress.id 
+          ? { ...addressForm, id: editingAddress.id }
+          : addressForm.isDefault ? { ...addr, isDefault: false } : addr
+      );
+    } else {
+      const newAddress: SavedAddress = {
+        id: crypto.randomUUID(),
+        ...addressForm,
+      };
+      if (addressForm.isDefault) {
+        newAddresses = currentAddresses.map(addr => ({ ...addr, isDefault: false }));
+        newAddresses.push(newAddress);
+      } else {
+        newAddresses = [...currentAddresses, newAddress];
+      }
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ saved_addresses: newAddresses as unknown as null })
+      .eq("id", profile.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save address",
+        variant: "destructive",
+      });
+    } else {
+      setProfile(prev => prev ? { ...prev, saved_addresses: newAddresses } : null);
+      setIsAddressDialogOpen(false);
+      toast({
+        title: editingAddress ? "Address Updated" : "Address Added",
+        description: "Your address has been saved successfully.",
+      });
+    }
+    setSavingAddress(false);
+  };
+
+  const handleDeleteAddress = async (addressId: string) => {
+    if (!profile) return;
+    
+    const newAddresses = (profile.saved_addresses || []).filter(addr => addr.id !== addressId);
+    
+    const { error } = await supabase
+      .from("profiles")
+      .update({ saved_addresses: newAddresses as unknown as null })
+      .eq("id", profile.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete address",
+        variant: "destructive",
+      });
+    } else {
+      setProfile(prev => prev ? { ...prev, saved_addresses: newAddresses } : null);
+      toast({
+        title: "Address Deleted",
+        description: "The address has been removed.",
+      });
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    if (!cancelOrderId) return;
+    setCancellingOrder(true);
+
+    const order = orders.find(o => o.id === cancelOrderId);
+    if (!order) {
+      setCancellingOrder(false);
+      setCancelOrderId(null);
+      return;
+    }
+
+    // Update order status
+    const { error: orderError } = await supabase
+      .from("orders")
+      .update({ status: "cancelled" })
+      .eq("id", cancelOrderId);
+
+    if (orderError) {
+      toast({
+        title: "Error",
+        description: "Failed to cancel order",
+        variant: "destructive",
+      });
+      setCancellingOrder(false);
+      setCancelOrderId(null);
+      return;
+    }
+
+    // Restore stock for cancelled order items
+    if (order.order_items) {
+      for (const item of order.order_items) {
+        try {
+          const { data: product } = await supabase
+            .from("products")
+            .select("stock")
+            .eq("id", item.product_id)
+            .single();
+          
+          if (product) {
+            await supabase
+              .from("products")
+              .update({ stock: (product.stock || 0) + item.quantity })
+              .eq("id", item.product_id);
+          }
+        } catch (err) {
+          console.error("Error restoring stock:", err);
+        }
+      }
+    }
+
+    setOrders(prev => prev.map(o => 
+      o.id === cancelOrderId ? { ...o, status: "cancelled" } : o
+    ));
+
+    toast({
+      title: "Order Cancelled",
+      description: "Your order has been cancelled successfully.",
+    });
+    
+    setCancellingOrder(false);
+    setCancelOrderId(null);
+  };
+
+  const markNotificationsAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
   };
 
   const toggleOrderExpanded = (orderId: string) => {
@@ -224,6 +533,10 @@ const Profile = () => {
     return parts.join(", ") || "N/A";
   };
 
+  const canCancelOrder = (status: string | null) => {
+    return status === "pending" || status === "confirmed";
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -240,51 +553,41 @@ const Profile = () => {
       <Navbar />
       
       <main className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-6">My Profile</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold">My Profile</h1>
+          <Button variant="outline" onClick={handleLogout} className="gap-2">
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
+        </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Profile Info */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Account Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-8 w-8 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-lg">{profile?.username || "User"}</p>
-                    <p className="text-sm text-muted-foreground">Customer</p>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{profile?.email || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                    <span>{orders.length} orders placed</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <Tabs defaultValue="orders" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="orders" className="gap-2">
+              <Package className="h-4 w-4 hidden sm:block" />
+              Orders
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="gap-2">
+              <User className="h-4 w-4 hidden sm:block" />
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value="addresses" className="gap-2">
+              <MapPin className="h-4 w-4 hidden sm:block" />
+              Addresses
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-2 relative">
+              <Bell className="h-4 w-4 hidden sm:block" />
+              Notifications
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Orders */}
-          <div className="lg:col-span-2">
+          {/* Orders Tab */}
+          <TabsContent value="orders">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -292,7 +595,7 @@ const Profile = () => {
                   My Orders
                 </CardTitle>
                 <CardDescription>
-                  Track your orders in real-time
+                  Track your orders in real-time. You can cancel orders before they are shipped.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -315,6 +618,7 @@ const Profile = () => {
                       const statusIndex = getStatusIndex(order.status);
                       const isExpanded = expandedOrders.has(order.id);
                       const isCancelled = order.status === "cancelled";
+                      const canCancel = canCancelOrder(order.status);
 
                       return (
                         <Collapsible
@@ -323,7 +627,6 @@ const Profile = () => {
                           onOpenChange={() => toggleOrderExpanded(order.id)}
                         >
                           <div className="border rounded-lg overflow-hidden">
-                            {/* Order Header */}
                             <CollapsibleTrigger asChild>
                               <div className="p-4 cursor-pointer hover:bg-muted/50 transition-colors">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -360,7 +663,6 @@ const Profile = () => {
                                   </div>
                                 </div>
 
-                                {/* Status Progress Bar */}
                                 {!isCancelled && (
                                   <div className="mt-4">
                                     <div className="flex items-center justify-between mb-2">
@@ -399,10 +701,8 @@ const Profile = () => {
                               </div>
                             </CollapsibleTrigger>
 
-                            {/* Order Details */}
                             <CollapsibleContent>
                               <div className="border-t p-4 bg-muted/30 space-y-4">
-                                {/* Shipping Info */}
                                 <div className="grid gap-3 sm:grid-cols-2">
                                   <div className="flex items-start gap-2 text-sm">
                                     <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
@@ -420,7 +720,6 @@ const Profile = () => {
                                   </div>
                                 </div>
 
-                                {/* Order Items */}
                                 <div>
                                   <p className="font-medium mb-2">Order Items</p>
                                   <div className="space-y-2">
@@ -451,11 +750,27 @@ const Profile = () => {
                                   </div>
                                 </div>
 
-                                {/* Order Notes */}
                                 {order.notes && (
                                   <div className="text-sm">
                                     <p className="font-medium">Notes</p>
                                     <p className="text-muted-foreground">{order.notes}</p>
+                                  </div>
+                                )}
+
+                                {canCancel && (
+                                  <div className="pt-2">
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCancelOrderId(order.id);
+                                      }}
+                                      className="gap-2"
+                                    >
+                                      <XCircle className="h-4 w-4" />
+                                      Cancel Order
+                                    </Button>
                                   </div>
                                 )}
                               </div>
@@ -468,9 +783,341 @@ const Profile = () => {
                 )}
               </CardContent>
             </Card>
-          </div>
-        </div>
+          </TabsContent>
+
+          {/* Profile Tab */}
+          <TabsContent value="profile">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Personal Information
+                    </CardTitle>
+                    <CardDescription>Manage your account details</CardDescription>
+                  </div>
+                  {!isEditingProfile && (
+                    <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)} className="gap-2">
+                      <Edit className="h-4 w-4" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="h-10 w-10 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-xl">{profile?.username || "User"}</p>
+                    <p className="text-sm text-muted-foreground">Customer</p>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                {isEditingProfile ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="username">Username</Label>
+                      <Input
+                        id="username"
+                        value={editUsername}
+                        onChange={(e) => setEditUsername(e.target.value)}
+                        placeholder="Enter your username"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        placeholder="Enter your phone number"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={handleSaveProfile} disabled={savingProfile} className="gap-2">
+                        {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Save
+                      </Button>
+                      <Button variant="outline" onClick={() => setIsEditingProfile(false)} className="gap-2">
+                        <X className="h-4 w-4" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Email</p>
+                        <p className="font-medium">{profile?.email || "N/A"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Phone className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Phone</p>
+                        <p className="font-medium">{profile?.phone || "Not set"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Calendar className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Member Since</p>
+                        <p className="font-medium">
+                          {profile?.created_at 
+                            ? new Date(profile.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" }) 
+                            : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Package className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total Orders</p>
+                        <p className="font-medium">{orders.length}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Addresses Tab */}
+          <TabsContent value="addresses">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      Saved Addresses
+                    </CardTitle>
+                    <CardDescription>Manage your delivery addresses</CardDescription>
+                  </div>
+                  <Button onClick={handleAddAddress} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Address
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(!profile?.saved_addresses || profile.saved_addresses.length === 0) ? (
+                  <div className="text-center py-12">
+                    <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No saved addresses</p>
+                    <Button onClick={handleAddAddress} className="mt-4 gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Your First Address
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {profile.saved_addresses.map((address) => (
+                      <div 
+                        key={address.id} 
+                        className={`p-4 border rounded-lg ${address.isDefault ? 'border-primary bg-primary/5' : ''}`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{address.label}</span>
+                            {address.isDefault && (
+                              <Badge variant="secondary" className="text-xs">Default</Badge>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => handleEditAddress(address)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => handleDeleteAddress(address.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {address.street}, {address.city}, {address.state} - {address.pincode}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Notifications Tab */}
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Bell className="h-5 w-5" />
+                      Notifications
+                    </CardTitle>
+                    <CardDescription>Stay updated with new products</CardDescription>
+                  </div>
+                  {unreadCount > 0 && (
+                    <Button variant="outline" size="sm" onClick={markNotificationsAsRead}>
+                      Mark all as read
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {notifications.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No notifications yet</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      You'll be notified when new products are added!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {notifications.map((notification) => (
+                      <div 
+                        key={notification.id}
+                        className={`p-4 border rounded-lg flex items-start gap-3 ${!notification.read ? 'bg-primary/5 border-primary/20' : ''}`}
+                      >
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${!notification.read ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                          <Package className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{notification.message}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {notification.timestamp.toLocaleString("en-IN")}
+                          </p>
+                        </div>
+                        {!notification.read && (
+                          <span className="h-2 w-2 rounded-full bg-primary" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
+
+      {/* Address Dialog */}
+      <Dialog open={isAddressDialogOpen} onOpenChange={setIsAddressDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingAddress ? "Edit Address" : "Add New Address"}</DialogTitle>
+            <DialogDescription>
+              {editingAddress ? "Update your address details" : "Add a new delivery address"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="label">Address Label</Label>
+              <Input
+                id="label"
+                placeholder="e.g., Home, Office, etc."
+                value={addressForm.label}
+                onChange={(e) => setAddressForm(prev => ({ ...prev, label: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="street">Street Address</Label>
+              <Input
+                id="street"
+                placeholder="Enter street address"
+                value={addressForm.street}
+                onChange={(e) => setAddressForm(prev => ({ ...prev, street: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  placeholder="City"
+                  value={addressForm.city}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, city: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  placeholder="State"
+                  value={addressForm.state}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, state: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pincode">Pincode</Label>
+              <Input
+                id="pincode"
+                placeholder="Enter pincode"
+                value={addressForm.pincode}
+                onChange={(e) => setAddressForm(prev => ({ ...prev, pincode: e.target.value }))}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isDefault"
+                checked={addressForm.isDefault}
+                onChange={(e) => setAddressForm(prev => ({ ...prev, isDefault: e.target.checked }))}
+                className="rounded"
+              />
+              <Label htmlFor="isDefault" className="text-sm font-normal">Set as default address</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddressDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveAddress} disabled={savingAddress}>
+              {savingAddress ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {editingAddress ? "Update" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Order Confirmation */}
+      <AlertDialog open={!!cancelOrderId} onOpenChange={() => setCancelOrderId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this order? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancellingOrder}>Keep Order</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelOrder}
+              disabled={cancellingOrder}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancellingOrder ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Yes, Cancel Order
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
