@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/contexts/NotificationContext";
 import {
   Loader2,
   User,
@@ -106,15 +107,6 @@ interface Profile {
   saved_addresses: SavedAddress[] | null;
 }
 
-interface Notification {
-  id: string;
-  type: string;
-  message: string;
-  productName?: string;
-  timestamp: Date;
-  read: boolean;
-}
-
 const ORDER_STATUSES = [
   { value: "pending", label: "Pending", icon: Clock, color: "bg-yellow-500", textColor: "text-yellow-600" },
   { value: "confirmed", label: "Confirmed", icon: CheckCircle, color: "bg-blue-500", textColor: "text-blue-600" },
@@ -135,12 +127,11 @@ const getStatusIndex = (status: string | null) => {
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   
   // Edit profile state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -203,39 +194,8 @@ const Profile = () => {
       )
       .subscribe();
 
-    // Subscribe to new products for notifications
-    const productChannel = supabase
-      .channel('new-products-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'products'
-        },
-        (payload) => {
-          const newProduct = payload.new as { name: string; id: string };
-          const notification: Notification = {
-            id: crypto.randomUUID(),
-            type: 'new_product',
-            message: `New product added: ${newProduct.name}`,
-            productName: newProduct.name,
-            timestamp: new Date(),
-            read: false,
-          };
-          setNotifications(prev => [notification, ...prev]);
-          setUnreadCount(prev => prev + 1);
-          toast({
-            title: "🎉 New Product Added!",
-            description: newProduct.name,
-          });
-        }
-      )
-      .subscribe();
-
     return () => {
       supabase.removeChannel(orderChannel);
-      supabase.removeChannel(productChannel);
     };
   }, [toast]);
 
@@ -507,10 +467,6 @@ const Profile = () => {
     setCancelOrderId(null);
   };
 
-  const markNotificationsAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    setUnreadCount(0);
-  };
 
   const toggleOrderExpanded = (orderId: string) => {
     setExpandedOrders(prev => {
@@ -986,7 +942,7 @@ const Profile = () => {
                     <CardDescription>Stay updated with new products</CardDescription>
                   </div>
                   {unreadCount > 0 && (
-                    <Button variant="outline" size="sm" onClick={markNotificationsAsRead}>
+                    <Button variant="outline" size="sm" onClick={markAllAsRead}>
                       Mark all as read
                     </Button>
                   )}
