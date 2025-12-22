@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, User, LogOut, GitCompare, Menu, X } from "lucide-react";
+import { ShoppingCart, User, LogOut, GitCompare, Menu, X, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +10,7 @@ export const Navbar = () => {
   const location = useLocation();
   const { toast } = useToast();
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -40,6 +41,29 @@ export const Navbar = () => {
       window.removeEventListener("cartUpdated", handleCartUpdate);
     };
   }, []);
+
+  // Check admin role when user changes
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+      
+      const { data, error } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'admin'
+      });
+      
+      if (!error && data) {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminRole();
+  }, [user]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -87,6 +111,18 @@ export const Navbar = () => {
             >
               <GitCompare className="h-5 w-5" />
             </Link>
+
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`flex items-center gap-1 transition-colors ${
+                  isActive("/admin") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
+                }`}
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
 
             <Link
               to="/cart"
@@ -158,6 +194,19 @@ export const Navbar = () => {
             >
               Compare Products
             </Link>
+
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={closeMobileMenu}
+                className={`flex items-center gap-2 py-2 transition-colors ${
+                  isActive("/admin") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
+                }`}
+              >
+                <Shield className="h-4 w-4" />
+                Admin Dashboard
+              </Link>
+            )}
 
             {user ? (
               <Button onClick={handleLogout} variant="ghost" className="w-full justify-start gap-2 px-0">
