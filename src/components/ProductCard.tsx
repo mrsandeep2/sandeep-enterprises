@@ -15,9 +15,10 @@ interface Product {
 
 interface ProductCardProps {
   product: Product;
+  hideCartActions?: boolean;
 }
 
-export const ProductCard = ({ product }: ProductCardProps) => {
+export const ProductCard = ({ product, hideCartActions = false }: ProductCardProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -88,15 +89,17 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             ₹{product.price}
           </span>
 
-          <Button
-            onClick={addToCart}
-            disabled={product.stock === 0}
-            size="sm"
-            className="rounded-full gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
-          >
-            <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline">Add</span>
-          </Button>
+          {!hideCartActions && (
+            <Button
+              onClick={addToCart}
+              disabled={product.stock === 0}
+              size="sm"
+              className="rounded-full gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
+            >
+              <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Add</span>
+            </Button>
+          )}
         </div>
       </div>
     </div>

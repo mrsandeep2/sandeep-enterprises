@@ -55,6 +55,7 @@ const CHOKAR_VARIETIES = [
 const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedChawalVariety, setSelectedChawalVariety] = useState<string | null>(null);
   const [selectedKapilaVariety, setSelectedKapilaVariety] = useState<string | null>(null);
@@ -64,6 +65,23 @@ const Products = () => {
   
   const [aiSearchResults, setAiSearchResults] = useState<Product[] | null>(null);
   const productsRef = useRef<HTMLDivElement>(null);
+
+  // Check if current user is admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        setIsAdmin(!!roleData);
+      }
+    };
+    checkAdminStatus();
+  }, []);
 
   // Calculate max price from products
   const maxPrice = useMemo(() => {
@@ -276,7 +294,7 @@ const Products = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} hideCartActions={isAdmin} />
             ))}
           </div>
         )}
