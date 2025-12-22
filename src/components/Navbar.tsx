@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, User, LogOut, GitCompare, Menu, X, Shield } from "lucide-react";
+import { ShoppingCart, User, LogOut, GitCompare, Menu, X, Shield, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -113,15 +113,26 @@ export const Navbar = () => {
             </Link>
 
             {isAdmin && (
-              <Link
-                to="/admin"
-                className={`flex items-center gap-1 transition-colors ${
-                  isActive("/admin") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
-                }`}
-              >
-                <Shield className="h-4 w-4" />
-                Admin
-              </Link>
+              <>
+                <Link
+                  to="/admin"
+                  className={`flex items-center gap-1 transition-colors ${
+                    isActive("/admin") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
+                  }`}
+                >
+                  <Shield className="h-4 w-4" />
+                  Products
+                </Link>
+                <Link
+                  to="/admin/orders"
+                  className={`flex items-center gap-1 transition-colors ${
+                    isActive("/admin/orders") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
+                  }`}
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  Orders
+                </Link>
+              </>
             )}
 
             <Link
@@ -196,16 +207,28 @@ export const Navbar = () => {
             </Link>
 
             {isAdmin && (
-              <Link
-                to="/admin"
-                onClick={closeMobileMenu}
-                className={`flex items-center gap-2 py-2 transition-colors ${
-                  isActive("/admin") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
-                }`}
-              >
-                <Shield className="h-4 w-4" />
-                Admin Dashboard
-              </Link>
+              <>
+                <Link
+                  to="/admin"
+                  onClick={closeMobileMenu}
+                  className={`flex items-center gap-2 py-2 transition-colors ${
+                    isActive("/admin") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
+                  }`}
+                >
+                  <Shield className="h-4 w-4" />
+                  Manage Products
+                </Link>
+                <Link
+                  to="/admin/orders"
+                  onClick={closeMobileMenu}
+                  className={`flex items-center gap-2 py-2 transition-colors ${
+                    isActive("/admin/orders") ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
+                  }`}
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  Manage Orders
+                </Link>
+              </>
             )}
 
             {user ? (

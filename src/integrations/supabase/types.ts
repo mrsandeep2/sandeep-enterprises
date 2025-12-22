@@ -55,6 +55,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          admin_notes: string | null
           created_at: string | null
           delivery_method: string | null
           id: string
@@ -66,6 +67,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_notes?: string | null
           created_at?: string | null
           delivery_method?: string | null
           id?: string
@@ -77,6 +79,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_notes?: string | null
           created_at?: string | null
           delivery_method?: string | null
           id?: string
