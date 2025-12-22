@@ -40,24 +40,16 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           { 
             role: "system", 
-            content: `You are a product search assistant for a rice and grain store. Given a user's natural language query, analyze it and return matching product IDs.
+            content: `Product search. Return JSON array of matching product IDs only.
 
-Available products:
-${products?.map(p => `- ID: ${p.id}, Name: ${p.name}, Category: ${p.category}, Description: ${p.description || 'N/A'}, Price: ₹${p.price}`).join('\n')}
+Products: ${products?.map(p => `${p.id}:${p.name}(${p.category})`).join(', ')}
 
-Understand queries like:
-- "best rice for biryani" → return biryani rice products
-- "something for my cattle" → return Kapila cattle feed
-- "cheap rice" → return lower priced rice options
-- "flour for chapati" → return Atta products
-- "I want to make pulao" → suggest aromatic rice like Basmati
-
-Return ONLY a JSON array of matching product IDs, nothing else. Example: ["id1", "id2"]
-If no matches, return empty array: []`
+Examples: biryani→Biryani rice, cattle→Kapila, cheap→low price, chapati→Atta, pulao→Basmati
+Response format: ["id1","id2"] or []`
           },
           { role: "user", content: query }
         ],
