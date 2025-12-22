@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
+import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { X, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -80,6 +81,11 @@ const ProductComparison = () => {
   if (products.length === 0) {
     return (
       <div className="min-h-screen">
+        <SEO 
+          title="Compare Products - Sandeep Enterprises"
+          description="Compare rice, atta, and cattle feed products side by side. Find the best product for your needs."
+          keywords="compare products, product comparison, rice comparison, sandeep enterprises"
+        />
         <Navbar />
         <div className="container mx-auto px-4 py-12 text-center">
           <h1 className="text-3xl font-bold mb-4">Product Comparison</h1>
@@ -94,6 +100,11 @@ const ProductComparison = () => {
 
   return (
     <div className="min-h-screen">
+      <SEO 
+        title="Compare Products - Sandeep Enterprises"
+        description="Compare rice, atta, and cattle feed products side by side. Find the best product for your needs."
+        keywords="compare products, product comparison, rice comparison, sandeep enterprises"
+      />
       <Navbar />
 
       <main className="container mx-auto px-4 py-12">

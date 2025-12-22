@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
+import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Trash2, Plus, Minus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +61,11 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen">
+      <SEO 
+        title="Shopping Cart - Sandeep Enterprises"
+        description="View and manage your shopping cart. Buy premium rice, atta, and cattle feed from Sandeep Enterprises."
+        keywords="shopping cart, buy rice online, sandeep enterprises cart"
+      />
       <Navbar />
       
       <main className="container mx-auto px-4 py-12">

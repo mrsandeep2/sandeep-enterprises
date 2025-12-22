@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -190,6 +191,11 @@ const Auth = () => {
   if (showForgotPassword) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
+        <SEO 
+          title="Forgot Password - Sandeep Enterprises"
+          description="Reset your password to access your Sandeep Enterprises account."
+          keywords="forgot password, reset password, sandeep enterprises login"
+        />
         <div className="glass-card rounded-3xl p-8 w-full max-w-md space-y-6 animate-float">
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -236,6 +242,11 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
+      <SEO 
+        title="Login & Sign Up - Sandeep Enterprises"
+        description="Create an account or login to Sandeep Enterprises. Buy premium rice, atta, and cattle feed at wholesale prices."
+        keywords="login, sign up, create account, sandeep enterprises"
+      />
       <div className="glass-card rounded-3xl p-8 w-full max-w-md space-y-6 animate-float">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">

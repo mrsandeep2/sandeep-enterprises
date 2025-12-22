@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,6 +89,11 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
+      <SEO 
+        title="Reset Password - Sandeep Enterprises"
+        description="Set a new password for your Sandeep Enterprises account."
+        keywords="reset password, new password, sandeep enterprises account"
+      />
       <div className="glass-card rounded-3xl p-8 w-full max-w-md space-y-6 animate-float">
         <div className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mb-4">
