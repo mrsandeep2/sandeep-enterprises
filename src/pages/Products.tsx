@@ -23,6 +23,7 @@ interface Product {
   image_url: string | null;
   stock: number | null;
   category: string | null;
+  discount?: number | null;
 }
 
 const CHAWAL_VARIETIES = [
