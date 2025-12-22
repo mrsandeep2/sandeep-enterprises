@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
 import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { SEO } from "@/components/SEO";
 import { AISearch } from "@/components/AISearch";
+import { ProductFilters } from "@/components/ProductFilters";
 import { Loader2, ChevronDown } from "lucide-react";
 
 import {
@@ -59,9 +60,23 @@ const Products = () => {
   const [selectedKapilaVariety, setSelectedKapilaVariety] = useState<string | null>(null);
   const [selectedAttaVariety, setSelectedAttaVariety] = useState<string | null>(null);
   const [selectedChokarVariety, setSelectedChokarVariety] = useState<string | null>(null);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   
   const [aiSearchResults, setAiSearchResults] = useState<Product[] | null>(null);
   const productsRef = useRef<HTMLDivElement>(null);
+
+  // Calculate max price from products
+  const maxPrice = useMemo(() => {
+    if (products.length === 0) return 10000;
+    return Math.ceil(Math.max(...products.map(p => p.price)) / 100) * 100;
+  }, [products]);
+
+  // Initialize price range when products load
+  useEffect(() => {
+    if (products.length > 0 && priceRange[1] === 10000) {
+      setPriceRange([0, maxPrice]);
+    }
+  }, [products, maxPrice]);
 
   useEffect(() => {
     fetchProducts();
@@ -89,14 +104,20 @@ const Products = () => {
 
   const categories = ["All", ...new Set(products.map((p) => p.category).filter(Boolean))];
   
+  // Check if any filters are active
+  const hasActiveFilters = selectedCategory !== "All" || priceRange[0] > 0 || priceRange[1] < maxPrice;
+  
   // Use AI search results if available, otherwise use regular filtering
-  const filteredProducts = (() => {
+  const filteredProducts = useMemo(() => {
     if (aiSearchResults !== null) {
-      return aiSearchResults;
+      // Apply price filter to AI results too
+      return aiSearchResults.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
     }
     
     let filtered = products;
     
+    // Apply price filter
+    filtered = filtered.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
     
     // Then apply category filter
     if (selectedCategory === "All") return filtered;
@@ -113,7 +134,7 @@ const Products = () => {
       return filtered.filter((p) => p.name === selectedChokarVariety);
     }
     return filtered.filter((p) => p.category === selectedCategory);
-  })();
+  }, [products, aiSearchResults, selectedCategory, selectedChawalVariety, selectedKapilaVariety, selectedAttaVariety, selectedChokarVariety, priceRange]);
 
   const handleAISearchResults = (results: Product[] | null) => {
     setAiSearchResults(results);
@@ -152,6 +173,18 @@ const Products = () => {
     setSelectedChokarVariety(variety);
   };
 
+  const handleResetFilters = () => {
+    setSelectedCategory("All");
+    setSelectedChawalVariety(null);
+    setSelectedKapilaVariety(null);
+    setSelectedAttaVariety(null);
+    setSelectedChokarVariety(null);
+    setPriceRange([0, maxPrice]);
+  };
+
+  const handlePriceRangeChange = (range: [number, number]) => {
+    setPriceRange(range);
+  };
 
   return (
     <div className="min-h-screen">
@@ -187,164 +220,24 @@ const Products = () => {
           </div>
         )}
 
+        {/* Product Filters */}
+        <ProductFilters
+          categories={categories as string[]}
+          selectedCategory={selectedCategory}
+          onCategoryChange={handleCategoryClick}
+          priceRange={priceRange}
+          maxPrice={maxPrice}
+          onPriceRangeChange={handlePriceRangeChange}
+          onReset={handleResetFilters}
+          hasActiveFilters={hasActiveFilters}
+        />
 
-        {/* Category Filter */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 justify-center mb-6 sm:mb-10 px-1">
-          {categories.map((category) => {
-            if (category === "Chawal") {
-              return (
-                <DropdownMenu key={category}>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className={`px-6 py-2 rounded-full transition-all flex items-center gap-2 ${
-                        selectedCategory === "Chawal"
-                          ? "glass-card text-primary font-semibold scale-105"
-                          : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
-                      }`}
-                    >
-                      Chawal
-                      <ChevronDown className="h-4 w-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-card border border-border shadow-lg z-50">
-                    <DropdownMenuItem
-                      onClick={() => { setSelectedCategory("Chawal"); setSelectedChawalVariety(null); }}
-                      className="cursor-pointer hover:bg-muted"
-                    >
-                      All Chawal
-                    </DropdownMenuItem>
-                    {CHAWAL_VARIETIES.map((variety) => (
-                      <DropdownMenuItem
-                        key={variety}
-                        onClick={() => handleChawalVarietyClick(variety)}
-                        className={`cursor-pointer hover:bg-muted ${selectedChawalVariety === variety ? "bg-muted text-primary font-semibold" : ""}`}
-                      >
-                        {variety}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              );
-            }
-            if (category === "Kapila") {
-              return (
-                <DropdownMenu key={category}>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className={`px-6 py-2 rounded-full transition-all flex items-center gap-2 ${
-                        selectedCategory === "Kapila"
-                          ? "glass-card text-primary font-semibold scale-105"
-                          : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
-                      }`}
-                    >
-                      Kapila
-                      <ChevronDown className="h-4 w-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-card border border-border shadow-lg z-50">
-                    <DropdownMenuItem
-                      onClick={() => { setSelectedCategory("Kapila"); setSelectedKapilaVariety(null); }}
-                      className="cursor-pointer hover:bg-muted"
-                    >
-                      All Kapila
-                    </DropdownMenuItem>
-                    {KAPILA_VARIETIES.map((variety) => (
-                      <DropdownMenuItem
-                        key={variety}
-                        onClick={() => handleKapilaVarietyClick(variety)}
-                        className={`cursor-pointer hover:bg-muted ${selectedKapilaVariety === variety ? "bg-muted text-primary font-semibold" : ""}`}
-                      >
-                        {variety}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              );
-            }
-            if (category === "Atta") {
-              return (
-                <DropdownMenu key={category}>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className={`px-6 py-2 rounded-full transition-all flex items-center gap-2 ${
-                        selectedCategory === "Atta"
-                          ? "glass-card text-primary font-semibold scale-105"
-                          : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
-                      }`}
-                    >
-                      Atta
-                      <ChevronDown className="h-4 w-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-card border border-border shadow-lg z-50">
-                    <DropdownMenuItem
-                      onClick={() => { setSelectedCategory("Atta"); setSelectedAttaVariety(null); }}
-                      className="cursor-pointer hover:bg-muted"
-                    >
-                      All Atta
-                    </DropdownMenuItem>
-                    {ATTA_VARIETIES.map((variety) => (
-                      <DropdownMenuItem
-                        key={variety}
-                        onClick={() => handleAttaVarietyClick(variety)}
-                        className={`cursor-pointer hover:bg-muted ${selectedAttaVariety === variety ? "bg-muted text-primary font-semibold" : ""}`}
-                      >
-                        {variety}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              );
-            }
-            if (category === "Chokar") {
-              return (
-                <DropdownMenu key={category}>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className={`px-6 py-2 rounded-full transition-all flex items-center gap-2 ${
-                        selectedCategory === "Chokar"
-                          ? "glass-card text-primary font-semibold scale-105"
-                          : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
-                      }`}
-                    >
-                      Chokar
-                      <ChevronDown className="h-4 w-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-card border border-border shadow-lg z-50">
-                    <DropdownMenuItem
-                      onClick={() => { setSelectedCategory("Chokar"); setSelectedChokarVariety(null); }}
-                      className="cursor-pointer hover:bg-muted"
-                    >
-                      All Chokar
-                    </DropdownMenuItem>
-                    {CHOKAR_VARIETIES.map((variety) => (
-                      <DropdownMenuItem
-                        key={variety}
-                        onClick={() => handleChokarVarietyClick(variety)}
-                        className={`cursor-pointer hover:bg-muted ${selectedChokarVariety === variety ? "bg-muted text-primary font-semibold" : ""}`}
-                      >
-                        {variety}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              );
-            }
-            return (
-              <button
-                key={category}
-                onClick={() => handleCategoryClick(category)}
-                className={`px-6 py-2 rounded-full transition-all ${
-                  selectedCategory === category
-                    ? "glass-card text-primary font-semibold scale-105"
-                    : "glass-card text-muted-foreground hover:text-primary hover:scale-105"
-                }`}
-              >
-                {category}
-              </button>
-            );
-          })}
+        {/* Results count */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-muted-foreground">
+            Showing <span className="font-medium text-foreground">{filteredProducts.length}</span> products
+            {hasActiveFilters && " (filtered)"}
+          </p>
         </div>
 
         {loading ? (
