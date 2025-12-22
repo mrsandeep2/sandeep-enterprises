@@ -2,12 +2,80 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { MessageCircle, X, Send, Bot, User } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+
+// Initial suggestions when chat starts
+const INITIAL_SUGGESTIONS = [
+  "What products do you sell?",
+  "Tell me about Basmati Rice",
+  "What are the prices?",
+  "How to place a bulk order?",
+  "Do you have cattle feed?",
+];
+
+// Context-based suggestions after certain topics
+const CONTEXTUAL_SUGGESTIONS: Record<string, string[]> = {
+  rice: [
+    "Which rice is best for biryani?",
+    "What's the difference between Basmati and Sona Masoori?",
+    "Do you offer bulk discounts on rice?",
+  ],
+  price: [
+    "What's the minimum order quantity?",
+    "Do you offer wholesale prices?",
+    "Any discounts for regular customers?",
+  ],
+  order: [
+    "How can I track my order?",
+    "What are the delivery options?",
+    "Can I cancel my order?",
+  ],
+  product: [
+    "Tell me about wheat atta",
+    "What is Chokar used for?",
+    "Do you have organic products?",
+  ],
+  feed: [
+    "What's in the cattle feed?",
+    "How much cattle feed should I order?",
+    "Is it suitable for cows?",
+  ],
+};
+
+const getSuggestionsForContext = (messages: Message[]): string[] => {
+  if (messages.length === 0) return INITIAL_SUGGESTIONS;
+  
+  const lastMessages = messages.slice(-3).map(m => m.content.toLowerCase()).join(' ');
+  
+  // Check for context keywords
+  if (lastMessages.includes('rice') || lastMessages.includes('basmati') || lastMessages.includes('sona')) {
+    return CONTEXTUAL_SUGGESTIONS.rice;
+  }
+  if (lastMessages.includes('price') || lastMessages.includes('cost') || lastMessages.includes('₹')) {
+    return CONTEXTUAL_SUGGESTIONS.price;
+  }
+  if (lastMessages.includes('order') || lastMessages.includes('delivery') || lastMessages.includes('track')) {
+    return CONTEXTUAL_SUGGESTIONS.order;
+  }
+  if (lastMessages.includes('cattle') || lastMessages.includes('feed') || lastMessages.includes('kapila')) {
+    return CONTEXTUAL_SUGGESTIONS.feed;
+  }
+  if (lastMessages.includes('product') || lastMessages.includes('atta') || lastMessages.includes('chokar')) {
+    return CONTEXTUAL_SUGGESTIONS.product;
+  }
+  
+  // Default suggestions after some conversation
+  return [
+    "Tell me more about your products",
+    "How do I contact you?",
+    "What are your best sellers?",
+  ];
+};
 
 export const AIChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -83,10 +151,11 @@ export const AIChatbot = () => {
     }
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (text?: string) => {
+    const messageText = text || input.trim();
+    if (!messageText || isLoading) return;
 
-    const userMsg: Message = { role: 'user', content: input.trim() };
+    const userMsg: Message = { role: 'user', content: messageText };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput('');
@@ -105,6 +174,12 @@ export const AIChatbot = () => {
     }
   };
 
+  const handleSuggestionClick = (suggestion: string) => {
+    handleSend(suggestion);
+  };
+
+  const currentSuggestions = getSuggestionsForContext(messages);
+
   return (
     <>
       {/* Chat Toggle Button */}
@@ -122,7 +197,7 @@ export const AIChatbot = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className="fixed bottom-24 right-6 z-50 w-[360px] h-[500px] flex flex-col shadow-2xl border-2 animate-in slide-in-from-bottom-5">
+        <Card className="fixed bottom-24 right-6 z-50 w-[380px] h-[550px] flex flex-col shadow-2xl border-2 animate-in slide-in-from-bottom-5">
           {/* Header */}
           <div className="bg-primary text-primary-foreground p-4 rounded-t-lg">
             <div className="flex items-center gap-3">
@@ -139,10 +214,10 @@ export const AIChatbot = () => {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/30">
             {messages.length === 0 && (
-              <div className="text-center text-muted-foreground py-8">
+              <div className="text-center text-muted-foreground py-4">
                 <Bot className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">Hello! How can I help you today?</p>
-                <p className="text-xs mt-1">Ask about our rice, atta, or cattle feed products</p>
+                <p className="text-sm font-medium">Hello! How can I help you today?</p>
+                <p className="text-xs mt-1 mb-4">Ask about our rice, atta, or cattle feed products</p>
               </div>
             )}
             {messages.map((msg, i) => (
@@ -192,8 +267,30 @@ export const AIChatbot = () => {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Quick Suggestions */}
+          {!isLoading && (
+            <div className="px-3 py-2 border-t bg-muted/20">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-medium text-muted-foreground">Quick questions</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {currentSuggestions.slice(0, 4).map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="text-xs px-2.5 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-colors truncate max-w-full"
+                    title={suggestion}
+                  >
+                    {suggestion.length > 30 ? suggestion.slice(0, 30) + '...' : suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Input */}
-          <div className="p-4 border-t bg-background rounded-b-lg">
+          <div className="p-3 border-t bg-background rounded-b-lg">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
