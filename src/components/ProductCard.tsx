@@ -1,4 +1,4 @@
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
@@ -40,6 +40,25 @@ export const ProductCard = ({ product, hideCartActions = false }: ProductCardPro
       title: "Added to cart",
       description: `${product.name} has been added to your cart`,
     });
+  };
+
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Add product to cart and redirect to checkout
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const existingItem = cart.find((item: any) => item.id === product.id);
+
+    if (existingItem) {
+      existingItem.quantity += 1;
+    } else {
+      cart.push({ ...product, quantity: 1 });
+    }
+
+    localStorage.setItem("cart", JSON.stringify(cart));
+    window.dispatchEvent(new Event("cartUpdated"));
+    
+    // Redirect to checkout
+    navigate("/checkout");
   };
 
   const handleCardClick = () => {
@@ -84,21 +103,33 @@ export const ProductCard = ({ product, hideCartActions = false }: ProductCardPro
           </p>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <span className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             ₹{product.price}
           </span>
 
           {!hideCartActions && (
-            <Button
-              onClick={addToCart}
-              disabled={product.stock === 0}
-              size="sm"
-              className="rounded-full gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
-            >
-              <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline">Add</span>
-            </Button>
+            <div className="flex gap-1 sm:gap-2">
+              <Button
+                onClick={addToCart}
+                disabled={product.stock === 0}
+                size="sm"
+                variant="outline"
+                className="rounded-full gap-1 text-xs h-8 px-2 sm:px-3"
+              >
+                <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Add</span>
+              </Button>
+              <Button
+                onClick={handleBuyNow}
+                disabled={product.stock === 0}
+                size="sm"
+                className="rounded-full gap-1 text-xs h-8 px-2 sm:px-3"
+              >
+                <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Buy</span>
+              </Button>
+            </div>
           )}
         </div>
       </div>
