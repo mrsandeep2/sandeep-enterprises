@@ -28,7 +28,7 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://sandeep-enterprises.lovable.app/sitemap.xml
+Sitemap: /sitemap.xml
 
 # Disallow sensitive pages from indexing
 Disallow: /admin
