@@ -36,12 +36,7 @@ import {
 } from "@/components/ui/card";
 import {
   PRODUCT_CATEGORIES,
-  SUB_CATEGORIES,
-  WEIGHT_OPTIONS,
   getCategoryByValue,
-  getSubCategoryByValue,
-  formatWeight,
-  generateProductName,
 } from "@/config/productCategories";
 
 // Validation schema for product form
@@ -92,7 +87,6 @@ interface FormData {
   stock: string;
   category: string;
   sub_category: string;
-  custom_sub_category: string;
   weight: string;
   discount: string;
   is_active: boolean;
@@ -107,10 +101,29 @@ const initialFormData: FormData = {
   stock: "",
   category: "",
   sub_category: "",
-  custom_sub_category: "",
   weight: "",
   discount: "",
   is_active: true,
+};
+
+// Helper function to generate product name
+const generateProductName = (category: string, subCategory?: string, weight?: string): string => {
+  const parts: string[] = [];
+  
+  const cat = getCategoryByValue(category);
+  if (cat) {
+    parts.push(cat.label);
+  }
+  
+  if (subCategory && subCategory.trim()) {
+    parts.push(subCategory.trim());
+  }
+  
+  if (weight && weight.trim()) {
+    parts.push(weight.trim());
+  }
+  
+  return parts.join(" – ");
 };
 
 const Admin = () => {
@@ -124,7 +137,6 @@ const Admin = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [newImageUrl, setNewImageUrl] = useState("");
-  const [useCustomSubCategory, setUseCustomSubCategory] = useState(false);
 
   useEffect(() => {
     checkAuthAndRole();
@@ -133,17 +145,16 @@ const Admin = () => {
   // Auto-generate product name when category/subcategory/weight changes
   useEffect(() => {
     if (formData.category) {
-      const subCat = useCustomSubCategory ? formData.custom_sub_category : formData.sub_category;
       const generatedName = generateProductName(
         formData.category,
-        subCat,
+        formData.sub_category,
         formData.weight
       );
       if (generatedName) {
         setFormData((prev) => ({ ...prev, name: generatedName }));
       }
     }
-  }, [formData.category, formData.sub_category, formData.custom_sub_category, formData.weight, useCustomSubCategory]);
+  }, [formData.category, formData.sub_category, formData.weight]);
 
   const checkAuthAndRole = async () => {
     try {
@@ -230,13 +241,6 @@ const Admin = () => {
     });
   };
 
-  const getEffectiveSubCategory = (): string => {
-    if (useCustomSubCategory && formData.custom_sub_category) {
-      return formData.custom_sub_category;
-    }
-    return formData.sub_category;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormErrors({});
@@ -259,8 +263,6 @@ const Admin = () => {
     }
 
     try {
-      const effectiveSubCategory = getEffectiveSubCategory();
-      
       const productData = {
         name: formData.name.trim(),
         description: formData.description?.trim() || null,
@@ -269,8 +271,8 @@ const Admin = () => {
         images: formData.images.length > 0 ? formData.images : null,
         stock: formData.stock ? parseInt(formData.stock) : 0,
         category: formData.category || null,
-        sub_category: effectiveSubCategory || null,
-        weight: formData.weight || null,
+        sub_category: formData.sub_category?.trim() || null,
+        weight: formData.weight?.trim() || null,
         discount: formData.discount ? parseFloat(formData.discount) : 0,
         is_active: formData.is_active,
       };
@@ -347,11 +349,6 @@ const Admin = () => {
 
   const openEditDialog = (product: Product) => {
     setEditingProduct(product);
-    
-    // Check if sub_category is a custom value
-    const isCustom = product.sub_category && !SUB_CATEGORIES.find(s => s.value === product.sub_category);
-    
-    setUseCustomSubCategory(isCustom || false);
     setFormData({
       name: product.name,
       description: product.description || "",
@@ -360,8 +357,7 @@ const Admin = () => {
       images: product.images || [],
       stock: product.stock?.toString() || "",
       category: product.category || "",
-      sub_category: isCustom ? "" : (product.sub_category || ""),
-      custom_sub_category: isCustom ? (product.sub_category || "") : "",
+      sub_category: product.sub_category || "",
       weight: product.weight || "",
       discount: product.discount?.toString() || "",
       is_active: product.is_active ?? true,
@@ -374,7 +370,6 @@ const Admin = () => {
     setFormErrors({});
     setFormData(initialFormData);
     setNewImageUrl("");
-    setUseCustomSubCategory(false);
   };
 
   const getDisplayPrice = () => {
@@ -383,12 +378,6 @@ const Admin = () => {
     const discount = formData.discount ? parseFloat(formData.discount) : 0;
     const discountedPrice = price - (price * discount / 100);
     return `₹${discountedPrice.toFixed(2)}`;
-  };
-
-  const getSubCategoryLabel = (subCategory: string | null): string => {
-    if (!subCategory) return "";
-    const predefined = getSubCategoryByValue(subCategory);
-    return predefined ? predefined.label : subCategory;
   };
 
   if (loading) {
@@ -458,7 +447,7 @@ const Admin = () => {
               </DialogHeader>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Category Selection - Mandatory */}
+                {/* Category Selection */}
                 <div className="space-y-4">
                   <h3 className="font-semibold text-lg border-b pb-2">Category Selection</h3>
                   
@@ -491,83 +480,30 @@ const Admin = () => {
                       <Label htmlFor="sub_category">
                         Sub-Product / Variety <span className="text-muted-foreground text-xs">(Optional)</span>
                       </Label>
-                      {useCustomSubCategory ? (
-                        <div className="flex gap-2">
-                          <Input
-                            value={formData.custom_sub_category}
-                            onChange={(e) =>
-                              setFormData({ ...formData, custom_sub_category: e.target.value })
-                            }
-                            placeholder="Enter custom variety"
-                            className="flex-1"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setUseCustomSubCategory(false);
-                              setFormData({ ...formData, custom_sub_category: "" });
-                            }}
-                          >
-                            List
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <Select
-                            value={formData.sub_category}
-                            onValueChange={(value) =>
-                              setFormData({ ...formData, sub_category: value })
-                            }
-                          >
-                            <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Select variety" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-background border">
-                              {SUB_CATEGORIES.map((sub) => (
-                                <SelectItem key={sub.value} value={sub.value}>
-                                  {sub.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setUseCustomSubCategory(true);
-                              setFormData({ ...formData, sub_category: "" });
-                            }}
-                          >
-                            Custom
-                          </Button>
-                        </div>
-                      )}
+                      <Input
+                        id="sub_category"
+                        value={formData.sub_category}
+                        onChange={(e) =>
+                          setFormData({ ...formData, sub_category: e.target.value })
+                        }
+                        placeholder="e.g., Parmal, Special, By-Pass"
+                        maxLength={100}
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="weight">
                         Weight / Pack Size <span className="text-muted-foreground text-xs">(Optional)</span>
                       </Label>
-                      <Select
+                      <Input
+                        id="weight"
                         value={formData.weight}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, weight: value })
+                        onChange={(e) =>
+                          setFormData({ ...formData, weight: e.target.value })
                         }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select weight" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background border">
-                          {WEIGHT_OPTIONS.map((w) => (
-                            <SelectItem key={w.value} value={w.value}>
-                              {w.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="e.g., 25 KG, 50 KG"
+                        maxLength={50}
+                      />
                     </div>
                   </div>
                 </div>
@@ -799,16 +735,14 @@ const Admin = () => {
                               {getCategoryByValue(formData.category)?.label}
                             </Badge>
                           )}
-                          {(formData.sub_category || formData.custom_sub_category) && (
+                          {formData.sub_category && (
                             <Badge variant="outline">
-                              {useCustomSubCategory 
-                                ? formData.custom_sub_category 
-                                : getSubCategoryByValue(formData.sub_category)?.label}
+                              {formData.sub_category}
                             </Badge>
                           )}
                           {formData.weight && (
                             <Badge variant="outline">
-                              {formatWeight(formData.weight)}
+                              {formData.weight}
                             </Badge>
                           )}
                         </div>
@@ -920,7 +854,7 @@ const Admin = () => {
                           </Badge>
                           {product.sub_category && (
                             <span className="text-sm text-muted-foreground">
-                              {getSubCategoryLabel(product.sub_category)}
+                              {product.sub_category}
                             </span>
                           )}
                         </div>
@@ -928,7 +862,7 @@ const Admin = () => {
                       <td className="p-4 hidden lg:table-cell">
                         {product.weight ? (
                           <Badge variant="outline">
-                            {formatWeight(product.weight)}
+                            {product.weight}
                           </Badge>
                         ) : "-"}
                       </td>
