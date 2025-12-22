@@ -8,7 +8,7 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import Footer from "./components/Footer";
 import SplashScreen from "./components/SplashScreen";
 import { Skeleton } from "./components/ui/skeleton";
-
+import { NotificationProvider } from "./contexts/NotificationContext";
 // Lazy load pages for better code splitting
 const Products = lazy(() => import("./pages/Products"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
@@ -64,36 +64,38 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        {showSplash && !hasSeenSplash && (
-          <SplashScreen onComplete={handleSplashComplete} />
-        )}
-        <BrowserRouter>
-          <div className="min-h-screen flex flex-col">
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Products />} />
-                <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/admin/orders" element={<AdminOrders />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/compare" element={<ProductComparison />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/order-confirmation" element={<OrderConfirmation />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-            <Footer />
-            <Suspense fallback={null}>
-              <AIChatbot />
-            </Suspense>
-            <SpeedInsights />
-          </div>
-        </BrowserRouter>
+        <NotificationProvider>
+          <Toaster />
+          <Sonner />
+          {showSplash && !hasSeenSplash && (
+            <SplashScreen onComplete={handleSplashComplete} />
+          )}
+          <BrowserRouter>
+            <div className="min-h-screen flex flex-col">
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Products />} />
+                  <Route path="/product/:id" element={<ProductDetail />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin/orders" element={<AdminOrders />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/compare" element={<ProductComparison />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/order-confirmation" element={<OrderConfirmation />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+              <Footer />
+              <Suspense fallback={null}>
+                <AIChatbot />
+              </Suspense>
+              <SpeedInsights />
+            </div>
+          </BrowserRouter>
+        </NotificationProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
