@@ -91,9 +91,8 @@ interface Order {
 interface SavedAddress {
   id: string;
   label: string;
-  street: string;
-  city: string;
-  state: string;
+  landmark: string;
+  village: string;
   pincode: string;
   isDefault?: boolean;
 }
@@ -154,9 +153,8 @@ const Profile = () => {
   const [editingAddress, setEditingAddress] = useState<SavedAddress | null>(null);
   const [addressForm, setAddressForm] = useState({
     label: "",
-    street: "",
-    city: "",
-    state: "",
+    landmark: "",
+    village: "",
     pincode: "",
     isDefault: false,
   });
@@ -342,7 +340,7 @@ const Profile = () => {
 
   const handleAddAddress = () => {
     setEditingAddress(null);
-    setAddressForm({ label: "", street: "", city: "", state: "", pincode: "", isDefault: false });
+    setAddressForm({ label: "", landmark: "", village: "", pincode: "", isDefault: false });
     setIsAddressDialogOpen(true);
   };
 
@@ -350,9 +348,8 @@ const Profile = () => {
     setEditingAddress(address);
     setAddressForm({
       label: address.label,
-      street: address.street,
-      city: address.city,
-      state: address.state,
+      landmark: address.landmark,
+      village: address.village,
       pincode: address.pincode,
       isDefault: address.isDefault || false,
     });
@@ -951,7 +948,7 @@ const Profile = () => {
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {address.street}, {address.city}, {address.state} - {address.pincode}
+                          {address.landmark}, {address.village} - {address.pincode}
                         </p>
                       </div>
                     ))}
@@ -1038,33 +1035,22 @@ const Profile = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="street">Street Address</Label>
+              <Label htmlFor="landmark">Landmark</Label>
               <Input
-                id="street"
-                placeholder="Enter street address"
-                value={addressForm.street}
-                onChange={(e) => setAddressForm(prev => ({ ...prev, street: e.target.value }))}
+                id="landmark"
+                placeholder="Enter landmark"
+                value={addressForm.landmark}
+                onChange={(e) => setAddressForm(prev => ({ ...prev, landmark: e.target.value }))}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  placeholder="City"
-                  value={addressForm.city}
-                  onChange={(e) => setAddressForm(prev => ({ ...prev, city: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  placeholder="State"
-                  value={addressForm.state}
-                  onChange={(e) => setAddressForm(prev => ({ ...prev, state: e.target.value }))}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="village">Village</Label>
+              <Input
+                id="village"
+                placeholder="Enter village"
+                value={addressForm.village}
+                onChange={(e) => setAddressForm(prev => ({ ...prev, village: e.target.value }))}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="pincode">Pincode</Label>
