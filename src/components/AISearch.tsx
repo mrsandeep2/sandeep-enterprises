@@ -253,6 +253,10 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
 
   // Update suggestions as user types
   useEffect(() => {
+    if (justSelected) {
+      // Don't show suggestions after selecting one
+      return;
+    }
     if (query.length >= 1 && !isListening) {
       const results = getSmartSuggestions(query);
       setSuggestions(results);
@@ -262,7 +266,7 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
       setSuggestions([]);
       setShowSuggestions(false);
     }
-  }, [query, getSmartSuggestions, isListening]);
+  }, [query, getSmartSuggestions, isListening, justSelected]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
