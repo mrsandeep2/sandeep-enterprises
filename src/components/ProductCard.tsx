@@ -1,7 +1,8 @@
 import { ShoppingCart, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { OptimizedImage } from "@/components/OptimizedImage";
 
 interface Product {
   id: string;
@@ -71,10 +72,11 @@ export const ProductCard = ({ product, hideCartActions = false }: ProductCardPro
       className="glass-card glass-card-hover rounded-2xl overflow-hidden group cursor-pointer"
     >
       <div className="relative aspect-square sm:h-52 lg:h-64 overflow-hidden bg-muted/30">
-        <img
+        <OptimizedImage
           src={product.image_url || "https://via.placeholder.com/400"}
           alt={product.name}
           className="w-full h-full object-contain sm:object-cover transition-transform duration-300 group-hover:scale-110"
+          wrapperClassName="w-full h-full"
         />
         {product.stock !== null && product.stock < 10 && product.stock > 0 && (
           <div className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-accent/90 text-accent-foreground px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold backdrop-blur-sm">
