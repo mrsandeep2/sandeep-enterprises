@@ -248,6 +248,18 @@ const Checkout = () => {
 
       if (itemsError) throw itemsError;
 
+      // Reduce stock for each product
+      for (const item of verifiedItems) {
+        const currentProduct = currentProducts.find(p => p.id === item.product_id);
+        if (currentProduct && currentProduct.stock !== null) {
+          const newStock = Math.max(0, currentProduct.stock - item.quantity);
+          await supabase
+            .from("products")
+            .update({ stock: newStock })
+            .eq("id", item.product_id);
+        }
+      }
+
       // Clear cart
       localStorage.setItem("cart", JSON.stringify([]));
       window.dispatchEvent(new Event("cartUpdated"));
