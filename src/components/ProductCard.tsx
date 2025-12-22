@@ -12,6 +12,7 @@ interface Product {
   image_url: string | null;
   stock: number | null;
   category: string | null;
+  discount?: number | null;
 }
 
 interface ProductCardProps {
@@ -78,6 +79,11 @@ export const ProductCard = ({ product, hideCartActions = false }: ProductCardPro
           className="w-full h-full object-contain sm:object-cover transition-transform duration-300 group-hover:scale-110"
           wrapperClassName="w-full h-full"
         />
+        {product.discount && product.discount > 0 && (
+          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-green-600 text-white px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold">
+            {product.discount}% OFF
+          </div>
+        )}
         {product.stock !== null && product.stock < 10 && product.stock > 0 && (
           <div className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-accent/90 text-accent-foreground px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold backdrop-blur-sm">
             Only {product.stock} left!
@@ -106,9 +112,27 @@ export const ProductCard = ({ product, hideCartActions = false }: ProductCardPro
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <span className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            ₹{product.price}
-          </span>
+          <div className="flex flex-col">
+            {product.discount && product.discount > 0 ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm text-muted-foreground line-through">
+                    ₹{product.price}
+                  </span>
+                  <span className="text-[10px] sm:text-xs font-semibold text-green-600 bg-green-100 px-1.5 py-0.5 rounded">
+                    {product.discount}% OFF
+                  </span>
+                </div>
+                <span className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  ₹{Math.round(product.price - (product.price * product.discount / 100))}
+                </span>
+              </>
+            ) : (
+              <span className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                ₹{product.price}
+              </span>
+            )}
+          </div>
 
           {!hideCartActions && (
             <div className="flex gap-1 sm:gap-2">
