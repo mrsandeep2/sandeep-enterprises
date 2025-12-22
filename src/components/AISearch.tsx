@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Search, Loader2, X } from 'lucide-react';
+import { Sparkles, Search, Loader2, X, Mic, MicOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -39,6 +39,50 @@ const NLP_SYNONYMS: Record<string, string[]> = {
   'best': ['premium', 'quality', 'top'],
 };
 
+// Speech Recognition types
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  onend: (() => void) | null;
+  onstart: (() => void) | null;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
+
 export const AISearch = ({ onResults, onClear }: AISearchProps) => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -47,9 +91,66 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { toast } = useToast();
+
+  // Check for speech recognition support
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      setSpeechSupported(true);
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'en-IN'; // English (India) for better Hindi/English support
+
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+        const results = event.results;
+        const lastResult = results[results.length - 1];
+        const transcript = lastResult[0].transcript;
+        
+        setQuery(transcript);
+        
+        if (lastResult.isFinal) {
+          setIsListening(false);
+          // Auto-search after voice input
+          setTimeout(() => {
+            if (transcript.trim()) {
+              handleSearchWithQuery(transcript.trim());
+            }
+          }, 300);
+        }
+      };
+
+      recognitionRef.current.onerror = (event: Event) => {
+        console.error('Speech recognition error:', event);
+        setIsListening(false);
+        toast({
+          title: "Voice search error",
+          description: "Could not understand. Please try again.",
+          variant: "destructive",
+        });
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onstart = () => {
+        setIsListening(true);
+      };
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
 
   // Fetch all products on mount for local suggestions
   useEffect(() => {
@@ -151,7 +252,7 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
 
   // Update suggestions as user types
   useEffect(() => {
-    if (query.length >= 1) {
+    if (query.length >= 1 && !isListening) {
       const results = getSmartSuggestions(query);
       setSuggestions(results);
       setShowSuggestions(results.length > 0);
@@ -160,7 +261,7 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
       setSuggestions([]);
       setShowSuggestions(false);
     }
-  }, [query, getSmartSuggestions]);
+  }, [query, getSmartSuggestions, isListening]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -178,15 +279,15 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
+  const handleSearchWithQuery = async (searchQuery: string) => {
+    if (!searchQuery.trim()) return;
     setShowSuggestions(false);
     setIsSearching(true);
     setHasSearched(true);
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-search', {
-        body: { query: query.trim() }
+        body: { query: searchQuery.trim() }
       });
 
       if (error) throw error;
@@ -214,6 +315,41 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
       });
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleSearch = () => handleSearchWithQuery(query);
+
+  const handleVoiceSearch = () => {
+    if (!speechSupported || !recognitionRef.current) {
+      toast({
+        title: "Voice search not supported",
+        description: "Your browser doesn't support voice search",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      setQuery('');
+      setShowSuggestions(false);
+      try {
+        recognitionRef.current.start();
+        toast({
+          title: "Listening...",
+          description: "Speak now to search products",
+        });
+      } catch (error) {
+        console.error('Speech recognition error:', error);
+        toast({
+          title: "Could not start voice search",
+          description: "Please try again",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -258,6 +394,10 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
     setHasSearched(false);
     setSuggestions([]);
     setShowSuggestions(false);
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
     onClear();
   };
 
@@ -282,6 +422,11 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="h-5 w-5 text-primary" />
         <span className="text-sm font-medium text-primary">AI-Powered Search</span>
+        {speechSupported && (
+          <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
+            <Mic className="h-3 w-3" /> Voice enabled
+          </span>
+        )}
       </div>
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -289,22 +434,41 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
           <Input
             ref={inputRef}
             type="text"
-            placeholder="Try: 'basmati' or 'cattle feed' or 'atta'"
+            placeholder={isListening ? "Listening..." : "Try: 'basmati' or 'cattle feed' or 'atta'"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-            className="pl-10 pr-10 h-12 rounded-full border-2 border-primary/20 focus:border-primary"
+            className={`pl-10 pr-20 h-12 rounded-full border-2 transition-all ${
+              isListening 
+                ? 'border-red-500 bg-red-50 dark:bg-red-950/20 animate-pulse' 
+                : 'border-primary/20 focus:border-primary'
+            }`}
             autoComplete="off"
           />
-          {hasSearched && (
-            <button
-              onClick={handleClear}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
+            {hasSearched && !isListening && (
+              <button
+                onClick={handleClear}
+                className="p-1 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+            {speechSupported && (
+              <button
+                onClick={handleVoiceSearch}
+                className={`p-2 rounded-full transition-all ${
+                  isListening 
+                    ? 'bg-red-500 text-white animate-pulse' 
+                    : 'text-muted-foreground hover:text-primary hover:bg-muted'
+                }`}
+                title={isListening ? "Stop listening" : "Voice search"}
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </button>
+            )}
+          </div>
           
           {/* Suggestions dropdown */}
           {showSuggestions && suggestions.length > 0 && (
@@ -345,7 +509,7 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
         </div>
         <Button 
           onClick={handleSearch}
-          disabled={isSearching || !query.trim()}
+          disabled={isSearching || !query.trim() || isListening}
           className="h-12 px-6 rounded-full"
         >
           {isSearching ? (
@@ -359,7 +523,11 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
         </Button>
       </div>
       <p className="text-xs text-muted-foreground mt-2 text-center">
-        Type to see suggestions • Press Enter for AI deep search
+        {isListening ? (
+          <span className="text-red-500 font-medium animate-pulse">🎤 Listening... speak now</span>
+        ) : (
+          <>Type to see suggestions • Click <Mic className="h-3 w-3 inline" /> for voice search</>
+        )}
       </p>
     </div>
   );
