@@ -258,28 +258,131 @@ const Products = () => {
         {/* AI Search */}
         <AISearch onResults={handleAISearchResults} onClear={handleClearAISearch} />
 
-        {/* Filters and results info - always visible */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+        {/* Category Tab Buttons */}
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-6">
+          {/* All Button */}
+          <button
+            onClick={() => handleCategoryClick("All")}
+            className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 text-sm sm:text-base font-medium transition-all duration-200 ${
+              selectedCategory === "All"
+                ? "bg-primary text-primary-foreground border-primary shadow-md"
+                : "bg-background border-border hover:border-primary/50 text-foreground hover:bg-primary/5"
+            }`}
+          >
+            All
+          </button>
+
+          {/* Atta Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 text-sm sm:text-base font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                  selectedCategory === "Atta"
+                    ? "bg-primary text-primary-foreground border-primary shadow-md"
+                    : "bg-background border-border hover:border-primary/50 text-foreground hover:bg-primary/5"
+                }`}
+              >
+                Atta
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="min-w-[160px]">
+              <DropdownMenuItem onClick={() => handleCategoryClick("Atta")}>
+                All Atta
+              </DropdownMenuItem>
+              {ATTA_VARIETIES.map((variety) => (
+                <DropdownMenuItem key={variety} onClick={() => handleAttaVarietyClick(variety)}>
+                  {variety}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Chokar Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 text-sm sm:text-base font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                  selectedCategory === "Chokar"
+                    ? "bg-primary text-primary-foreground border-primary shadow-md"
+                    : "bg-background border-border hover:border-primary/50 text-foreground hover:bg-primary/5"
+                }`}
+              >
+                Chokar
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="min-w-[160px]">
+              <DropdownMenuItem onClick={() => handleCategoryClick("Chokar")}>
+                All Chokar
+              </DropdownMenuItem>
+              {CHOKAR_VARIETIES.map((variety) => (
+                <DropdownMenuItem key={variety} onClick={() => handleChokarVarietyClick(variety)}>
+                  {variety}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Kapila Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 text-sm sm:text-base font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                  selectedCategory === "Kapila"
+                    ? "bg-primary text-primary-foreground border-primary shadow-md"
+                    : "bg-background border-border hover:border-primary/50 text-foreground hover:bg-primary/5"
+                }`}
+              >
+                Kapila
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="min-w-[180px]">
+              <DropdownMenuItem onClick={() => handleCategoryClick("Kapila")}>
+                All Kapila
+              </DropdownMenuItem>
+              {KAPILA_VARIETIES.map((variety) => (
+                <DropdownMenuItem key={variety} onClick={() => handleKapilaVarietyClick(variety)}>
+                  {variety}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Chawal Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 text-sm sm:text-base font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                  selectedCategory === "Chawal"
+                    ? "bg-primary text-primary-foreground border-primary shadow-md"
+                    : "bg-background border-border hover:border-primary/50 text-foreground hover:bg-primary/5"
+                }`}
+              >
+                Chawal
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="min-w-[180px]">
+              <DropdownMenuItem onClick={() => handleCategoryClick("Chawal")}>
+                All Chawal
+              </DropdownMenuItem>
+              {CHAWAL_VARIETIES.map((variety) => (
+                <DropdownMenuItem key={variety} onClick={() => handleChawalVarietyClick(variety)}>
+                  {variety}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Results count */}
+        <div className="flex justify-center mb-4">
           <span className="text-sm text-muted-foreground">
-            {aiSearchResults !== null ? (
-              <>Found <span className="font-medium text-foreground">{filteredProducts.length}</span> products</>
-            ) : (
-              <span className="font-medium text-foreground">{filteredProducts.length}</span>
-            )}
+            {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
             {aiSearchResults !== null && " matching your search"}
           </span>
-          
-          {/* Product Filters - Dropdown style */}
-          <ProductFilters
-            categories={categories as string[]}
-            selectedCategory={selectedCategory}
-            onCategoryChange={handleCategoryClick}
-            priceRange={priceRange}
-            maxPrice={maxPrice}
-            onPriceRangeChange={handlePriceRangeChange}
-            onReset={handleResetFilters}
-            hasActiveFilters={hasActiveFilters}
-          />
         </div>
 
         {loading ? (
