@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- Homepage / Main Products Page -->
   <url>
-    <loc>https://sandeep-enterprises.lovable.app/</loc>
+    <loc>/</loc>
     <lastmod>2024-12-22</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
@@ -10,7 +10,7 @@
   
   <!-- Authentication Page -->
   <url>
-    <loc>https://sandeep-enterprises.lovable.app/auth</loc>
+    <loc>/auth</loc>
     <lastmod>2024-12-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -18,7 +18,7 @@
   
   <!-- Product Comparison Page -->
   <url>
-    <loc>https://sandeep-enterprises.lovable.app/compare</loc>
+    <loc>/compare</loc>
     <lastmod>2024-12-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -26,7 +26,7 @@
   
   <!-- Shopping Cart -->
   <url>
-    <loc>https://sandeep-enterprises.lovable.app/cart</loc>
+    <loc>/cart</loc>
     <lastmod>2024-12-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
