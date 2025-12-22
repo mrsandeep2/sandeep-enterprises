@@ -1,0 +1,729 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Navbar } from "@/components/Navbar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Loader2,
+  Search,
+  ShieldX,
+  Eye,
+  Package,
+  Truck,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Filter,
+  X,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Phone,
+  MapPin,
+  Calendar,
+  IndianRupee,
+  MessageSquare,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
+
+interface OrderItem {
+  id: string;
+  product_id: string;
+  quantity: number;
+  price: number;
+  product?: {
+    name: string;
+    category: string | null;
+    weight: string | null;
+    image_url: string | null;
+  };
+}
+
+interface Order {
+  id: string;
+  user_id: string;
+  total: number;
+  status: string | null;
+  created_at: string | null;
+  shipping_address: any;
+  delivery_method: string | null;
+  phone: string | null;
+  notes: string | null;
+  admin_notes: string | null;
+  order_items?: OrderItem[];
+  profile?: {
+    username: string | null;
+    email: string | null;
+  };
+}
+
+const ORDER_STATUSES = [
+  { value: "pending", label: "Pending", icon: Clock, color: "bg-yellow-500" },
+  { value: "confirmed", label: "Confirmed", icon: CheckCircle, color: "bg-blue-500" },
+  { value: "shipped", label: "Shipped", icon: Truck, color: "bg-purple-500" },
+  { value: "delivered", label: "Delivered", icon: Package, color: "bg-green-500" },
+  { value: "cancelled", label: "Cancelled", icon: XCircle, color: "bg-red-500" },
+];
+
+const getStatusConfig = (status: string | null) => {
+  return ORDER_STATUSES.find(s => s.value === status) || ORDER_STATUSES[0];
+};
+
+const AdminOrders = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Order Detail Dialog
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [adminNotes, setAdminNotes] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
+
+  useEffect(() => {
+    checkAuthAndRole();
+  }, []);
+
+  useEffect(() => {
+    filterOrders();
+  }, [orders, searchQuery, statusFilter]);
+
+  const checkAuthAndRole = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (roleError) {
+        console.error("Error checking role:", roleError);
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
+
+      if (roleData) {
+        setIsAdmin(true);
+        fetchOrders();
+      } else {
+        setIsAdmin(false);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Error checking auth:", error);
+      setIsAdmin(false);
+      setLoading(false);
+    }
+  };
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch orders with order items and product details
+      const { data: ordersData, error: ordersError } = await supabase
+        .from("orders")
+        .select(`
+          *,
+          order_items (
+            id,
+            product_id,
+            quantity,
+            price,
+            product:products (
+              name,
+              category,
+              weight,
+              image_url
+            )
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (ordersError) {
+        console.error("Error fetching orders:", ordersError);
+        toast({
+          title: "Error",
+          description: "Failed to fetch orders",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Fetch profile information for each order
+      const ordersWithProfiles = await Promise.all(
+        (ordersData || []).map(async (order) => {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("username, email")
+            .eq("id", order.user_id)
+            .maybeSingle();
+          
+          return {
+            ...order,
+            profile: profileData,
+          };
+        })
+      );
+
+      setOrders(ordersWithProfiles);
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterOrders = () => {
+    let filtered = [...orders];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(order => 
+        order.id.toLowerCase().includes(query) ||
+        order.phone?.toLowerCase().includes(query) ||
+        order.profile?.username?.toLowerCase().includes(query) ||
+        order.profile?.email?.toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    setFilteredOrders(filtered);
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    if (!selectedOrder) return;
+    
+    const currentStatus = selectedOrder.status;
+    
+    // Prevent changes to delivered orders
+    if (currentStatus === "delivered") {
+      toast({
+        title: "Cannot Update",
+        description: "Delivered orders cannot be modified",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUpdatingStatus(true);
+    try {
+      // Update order status
+      const { error: updateError } = await supabase
+        .from("orders")
+        .update({ status: newStatus })
+        .eq("id", orderId);
+
+      if (updateError) throw updateError;
+
+      // Handle stock updates
+      if (newStatus === "confirmed" && currentStatus === "pending") {
+        // Reduce stock when order is confirmed
+        await updateStock(orderId, "reduce");
+      } else if (newStatus === "cancelled" && currentStatus !== "pending") {
+        // Restore stock when order is cancelled (if it was confirmed/shipped)
+        await updateStock(orderId, "restore");
+      }
+
+      // Update local state
+      setOrders(prev => prev.map(o => 
+        o.id === orderId ? { ...o, status: newStatus } : o
+      ));
+      setSelectedOrder(prev => prev ? { ...prev, status: newStatus } : null);
+
+      toast({
+        title: "Status Updated",
+        description: `Order status changed to ${newStatus}`,
+      });
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update order status",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const updateStock = async (orderId: string, action: "reduce" | "restore") => {
+    try {
+      const order = orders.find(o => o.id === orderId);
+      if (!order?.order_items) return;
+
+      for (const item of order.order_items) {
+        const { data: product } = await supabase
+          .from("products")
+          .select("stock")
+          .eq("id", item.product_id)
+          .single();
+
+        if (product) {
+          const newStock = action === "reduce" 
+            ? Math.max(0, (product.stock || 0) - item.quantity)
+            : (product.stock || 0) + item.quantity;
+
+          await supabase
+            .from("products")
+            .update({ stock: newStock })
+            .eq("id", item.product_id);
+        }
+      }
+    } catch (error) {
+      console.error("Error updating stock:", error);
+    }
+  };
+
+  const saveAdminNotes = async () => {
+    if (!selectedOrder) return;
+    
+    setSavingNotes(true);
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ admin_notes: adminNotes })
+        .eq("id", selectedOrder.id);
+
+      if (error) throw error;
+
+      setOrders(prev => prev.map(o => 
+        o.id === selectedOrder.id ? { ...o, admin_notes: adminNotes } : o
+      ));
+      setSelectedOrder(prev => prev ? { ...prev, admin_notes: adminNotes } : null);
+
+      toast({
+        title: "Notes Saved",
+        description: "Admin notes have been saved",
+      });
+    } catch (error) {
+      console.error("Error saving notes:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save notes",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
+  const openOrderDetail = (order: Order) => {
+    setSelectedOrder(order);
+    setAdminNotes(order.admin_notes || "");
+    setDetailDialogOpen(true);
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatAddress = (address: any) => {
+    if (!address) return "N/A";
+    const parts = [];
+    if (address.street) parts.push(address.street);
+    if (address.city) parts.push(address.city);
+    if (address.state) parts.push(address.state);
+    if (address.pincode) parts.push(address.pincode);
+    if (address.landmark) parts.push(`(Near: ${address.landmark})`);
+    return parts.join(", ") || "N/A";
+  };
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+  };
+
+  const hasActiveFilters = searchQuery || statusFilter !== "all";
+
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="flex justify-center items-center h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="flex flex-col justify-center items-center h-[60vh] gap-4">
+          <ShieldX className="h-16 w-16 text-destructive" />
+          <h1 className="text-2xl font-bold">Access Denied</h1>
+          <p className="text-muted-foreground">You don't have admin privileges</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Order Management</h1>
+            <p className="text-muted-foreground">
+              {filteredOrders.length} of {orders.length} orders
+            </p>
+          </div>
+          
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className="gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            Filters
+            {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </div>
+
+        {/* Filters */}
+        {showFilters && (
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by Order ID, Phone, or Customer..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {ORDER_STATUSES.map(status => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {hasActiveFilters && (
+                  <Button variant="ghost" onClick={clearFilters} className="gap-2">
+                    <X className="h-4 w-4" />
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Orders Table */}
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredOrders.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        No orders found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredOrders.map((order) => {
+                      const statusConfig = getStatusConfig(order.status);
+                      return (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-mono text-xs">
+                            {order.id.slice(0, 8)}...
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{order.profile?.username || "Unknown"}</p>
+                              <p className="text-xs text-muted-foreground">{order.profile?.email}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{order.phone || "N/A"}</TableCell>
+                          <TableCell className="text-sm">{formatDate(order.created_at)}</TableCell>
+                          <TableCell className="font-semibold">₹{order.total}</TableCell>
+                          <TableCell>
+                            <Badge className={`${statusConfig.color} text-white`}>
+                              {statusConfig.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openOrderDetail(order)}
+                              className="gap-1"
+                            >
+                              <Eye className="h-4 w-4" />
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+
+      {/* Order Detail Dialog */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Order Details
+            </DialogTitle>
+            <DialogDescription>
+              Order ID: {selectedOrder?.id}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedOrder && (
+            <div className="space-y-6">
+              {/* Status Management */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Order Status</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {ORDER_STATUSES.map((status) => {
+                      const isActive = selectedOrder.status === status.value;
+                      const isDelivered = selectedOrder.status === "delivered";
+                      return (
+                        <Button
+                          key={status.value}
+                          size="sm"
+                          variant={isActive ? "default" : "outline"}
+                          disabled={isDelivered || updatingStatus}
+                          onClick={() => updateOrderStatus(selectedOrder.id, status.value)}
+                          className={isActive ? status.color : ""}
+                        >
+                          <status.icon className="h-4 w-4 mr-1" />
+                          {status.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  {selectedOrder.status === "delivered" && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      This order is delivered and cannot be modified.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Customer Details */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Customer Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{selectedOrder.profile?.username || "Unknown"}</span>
+                    <span className="text-muted-foreground">({selectedOrder.profile?.email})</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    {selectedOrder.phone || "N/A"}
+                  </div>
+                  <div className="flex items-start gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <span>{formatAddress(selectedOrder.shipping_address)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    {formatDate(selectedOrder.created_at)}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Truck className="h-4 w-4 text-muted-foreground" />
+                    Delivery: {selectedOrder.delivery_method || "Standard"}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Order Items */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Ordered Products</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {selectedOrder.order_items?.map((item) => (
+                      <div key={item.id} className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+                        <img
+                          src={item.product?.image_url || "https://via.placeholder.com/60"}
+                          alt={item.product?.name || "Product"}
+                          className="w-14 h-14 object-cover rounded"
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium">{item.product?.name || "Unknown Product"}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {item.product?.category} {item.product?.weight && `• ${item.product.weight}`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">₹{item.price} × {item.quantity}</p>
+                          <p className="text-sm text-muted-foreground">= ₹{item.price * item.quantity}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Separator className="my-4" />
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-lg font-bold">
+                      <span>Total</span>
+                      <span className="flex items-center">
+                        <IndianRupee className="h-4 w-4" />
+                        {selectedOrder.total}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Customer Notes */}
+              {selectedOrder.notes && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Customer Notes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">{selectedOrder.notes}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Admin Notes */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" />
+                    Admin Notes (Private)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Textarea
+                    placeholder="Add private notes about this order..."
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    rows={3}
+                  />
+                  <Button 
+                    onClick={saveAdminNotes} 
+                    disabled={savingNotes}
+                    size="sm"
+                  >
+                    {savingNotes && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Save Notes
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default AdminOrders;
