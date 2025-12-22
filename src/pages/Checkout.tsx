@@ -14,20 +14,18 @@ import { z } from "zod";
 // Validation schema for checkout form
 const checkoutSchema = z.object({
   fullName: z.string().trim().min(1, "Full name is required").max(100, "Name must be less than 100 characters"),
-  email: z.string().trim().email("Please enter a valid email address").max(255, "Email must be less than 255 characters"),
   phone: z.string().trim().min(1, "Phone number is required").max(20, "Phone number must be less than 20 characters").regex(/^[\d\s\-+()]+$/, "Please enter a valid phone number"),
-  address: z.string().trim().max(200, "Address must be less than 200 characters").optional(),
-  city: z.string().trim().max(100, "City must be less than 100 characters").optional(),
-  pinCode: z.string().trim().max(10, "Pin code must be less than 10 characters").optional(),
-  landmark: z.string().trim().max(200, "Landmark must be less than 200 characters").optional(),
-  notes: z.string().trim().max(500, "Notes must be less than 500 characters").optional(),
-});
-
-const shippingSchema = z.object({
   address: z.string().trim().min(1, "Street address is required").max(200, "Address must be less than 200 characters"),
   city: z.string().trim().min(1, "City is required").max(100, "City must be less than 100 characters"),
   pinCode: z.string().trim().min(1, "Pin code is required").max(10, "Pin code must be less than 10 characters"),
   landmark: z.string().trim().max(200, "Landmark must be less than 200 characters").optional(),
+  notes: z.string().trim().max(500, "Notes must be less than 500 characters").optional(),
+});
+
+const pickupSchema = z.object({
+  fullName: z.string().trim().min(1, "Full name is required").max(100, "Name must be less than 100 characters"),
+  phone: z.string().trim().min(1, "Phone number is required").max(20, "Phone number must be less than 20 characters").regex(/^[\d\s\-+()]+$/, "Please enter a valid phone number"),
+  notes: z.string().trim().max(500, "Notes must be less than 500 characters").optional(),
 });
 
 interface CartItem {
@@ -46,7 +44,6 @@ const Checkout = () => {
 
   const [formData, setFormData] = useState({
     fullName: "",
-    email: "",
     phone: "",
     address: "",
     city: "",
@@ -91,33 +88,24 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate form data with zod
-    const validationResult = checkoutSchema.safeParse(formData);
-    if (!validationResult.success) {
-      const firstError = validationResult.error.errors[0];
-      toast({
-        title: "Validation error",
-        description: firstError.message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const validatedData = validationResult.data;
-
-    // Validate shipping address if delivery method requires it
-    if (deliveryMethod !== "pickup") {
-      const shippingValidation = shippingSchema.safeParse({
-        address: formData.address,
-        city: formData.city,
-        pinCode: formData.pinCode,
-        landmark: formData.landmark,
-      });
-      
-      if (!shippingValidation.success) {
-        const firstError = shippingValidation.error.errors[0];
+    // Validate form data based on delivery method
+    if (deliveryMethod === "pickup") {
+      const validationResult = pickupSchema.safeParse(formData);
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
         toast({
-          title: "Missing address",
+          title: "Validation error",
+          description: firstError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      const validationResult = checkoutSchema.safeParse(formData);
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        toast({
+          title: "Validation error",
           description: firstError.message,
           variant: "destructive",
         });
@@ -210,7 +198,7 @@ const Checkout = () => {
       const total = verifiedSubtotal + deliveryFee;
 
       const shippingAddress = deliveryMethod === "pickup" ? null : {
-        fullName: validatedData.fullName,
+        fullName: formData.fullName.trim(),
         address: formData.address?.trim(),
         city: formData.city?.trim(),
         pinCode: formData.pinCode?.trim(),
@@ -226,8 +214,8 @@ const Checkout = () => {
           status: "pending",
           shipping_address: shippingAddress,
           delivery_method: deliveryMethod,
-          phone: validatedData.phone,
-          notes: validatedData.notes || null,
+          phone: formData.phone.trim(),
+          notes: formData.notes?.trim() || null,
         })
         .select()
         .single();
@@ -308,45 +296,6 @@ const Checkout = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Contact Information */}
-              <div className="glass-card rounded-2xl p-6">
-                <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="fullName">Full Name *</Label>
-                    <Input
-                      id="fullName"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label htmlFor="phone">Phone Number *</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* Delivery Method */}
               <div className="glass-card rounded-2xl p-6">
                 <h2 className="text-xl font-semibold mb-4">Delivery Method</h2>
@@ -384,11 +333,34 @@ const Checkout = () => {
                 </RadioGroup>
               </div>
 
-              {/* Shipping Address */}
-              {deliveryMethod !== "pickup" && (
+              {/* Shipping Address (includes contact info) */}
+              {deliveryMethod !== "pickup" ? (
                 <div className="glass-card rounded-2xl p-6">
                   <h2 className="text-xl font-semibold mb-4">Shipping Address</h2>
                   <div className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="fullName">Full Name *</Label>
+                        <Input
+                          id="fullName"
+                          name="fullName"
+                          value={formData.fullName}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="phone">Phone Number *</Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                    </div>
                     <div>
                       <Label htmlFor="address">Address *</Label>
                       <Input
@@ -429,6 +401,33 @@ const Checkout = () => {
                         value={formData.landmark}
                         onChange={handleInputChange}
                         placeholder="Near temple, opposite school, etc."
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="glass-card rounded-2xl p-6">
+                  <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="fullName">Full Name *</Label>
+                      <Input
+                        id="fullName"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Phone Number *</Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        required
                       />
                     </div>
                   </div>
