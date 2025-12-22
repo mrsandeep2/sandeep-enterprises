@@ -36,15 +36,17 @@ import {
 } from "@/components/ui/card";
 import {
   PRODUCT_CATEGORIES,
+  SUB_CATEGORIES,
+  WEIGHT_OPTIONS,
   getCategoryByValue,
   getSubCategoryByValue,
-  getWeightOptions,
+  formatWeight,
   generateProductName,
 } from "@/config/productCategories";
 
 // Validation schema for product form
 const productSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(200, "Name must be less than 200 characters"),
+  name: z.string().trim().min(1, "Product name is required").max(200, "Name must be less than 200 characters"),
   description: z.string().max(2000, "Description must be less than 2000 characters").optional().or(z.literal("")),
   price: z.string().refine((val) => {
     const num = parseFloat(val);
@@ -90,6 +92,7 @@ interface FormData {
   stock: string;
   category: string;
   sub_category: string;
+  custom_sub_category: string;
   weight: string;
   discount: string;
   is_active: boolean;
@@ -104,6 +107,7 @@ const initialFormData: FormData = {
   stock: "",
   category: "",
   sub_category: "",
+  custom_sub_category: "",
   weight: "",
   discount: "",
   is_active: true,
@@ -116,11 +120,11 @@ const Admin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [useCustomSubCategory, setUseCustomSubCategory] = useState(false);
 
   useEffect(() => {
     checkAuthAndRole();
@@ -128,17 +132,18 @@ const Admin = () => {
 
   // Auto-generate product name when category/subcategory/weight changes
   useEffect(() => {
-    if (formData.category && !editingProduct) {
+    if (formData.category) {
+      const subCat = useCustomSubCategory ? formData.custom_sub_category : formData.sub_category;
       const generatedName = generateProductName(
         formData.category,
-        formData.sub_category,
+        subCat,
         formData.weight
       );
       if (generatedName) {
         setFormData((prev) => ({ ...prev, name: generatedName }));
       }
     }
-  }, [formData.category, formData.sub_category, formData.weight, editingProduct]);
+  }, [formData.category, formData.sub_category, formData.custom_sub_category, formData.weight, useCustomSubCategory]);
 
   const checkAuthAndRole = async () => {
     try {
@@ -196,16 +201,6 @@ const Admin = () => {
     setFormData({
       ...formData,
       category: value,
-      sub_category: "",
-      weight: "",
-    });
-  };
-
-  const handleSubCategoryChange = (value: string) => {
-    setFormData({
-      ...formData,
-      sub_category: value,
-      weight: "",
     });
   };
 
@@ -235,6 +230,13 @@ const Admin = () => {
     });
   };
 
+  const getEffectiveSubCategory = (): string => {
+    if (useCustomSubCategory && formData.custom_sub_category) {
+      return formData.custom_sub_category;
+    }
+    return formData.sub_category;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormErrors({});
@@ -257,6 +259,8 @@ const Admin = () => {
     }
 
     try {
+      const effectiveSubCategory = getEffectiveSubCategory();
+      
       const productData = {
         name: formData.name.trim(),
         description: formData.description?.trim() || null,
@@ -265,7 +269,7 @@ const Admin = () => {
         images: formData.images.length > 0 ? formData.images : null,
         stock: formData.stock ? parseInt(formData.stock) : 0,
         category: formData.category || null,
-        sub_category: formData.sub_category || null,
+        sub_category: effectiveSubCategory || null,
         weight: formData.weight || null,
         discount: formData.discount ? parseFloat(formData.discount) : 0,
         is_active: formData.is_active,
@@ -278,14 +282,14 @@ const Admin = () => {
           .eq("id", editingProduct.id);
 
         if (error) throw error;
-        toast({ title: "Success", description: "Product updated" });
+        toast({ title: "Success", description: "Product updated successfully" });
       } else {
         const { error } = await supabase
           .from("products")
           .insert([productData]);
 
         if (error) throw error;
-        toast({ title: "Success", description: "Product created" });
+        toast({ title: "Success", description: "Product created successfully" });
       }
 
       setDialogOpen(false);
@@ -329,7 +333,7 @@ const Admin = () => {
       
       toast({ 
         title: "Success", 
-        description: `Product ${!product.is_active ? "activated" : "deactivated"}` 
+        description: `Product ${!product.is_active ? "enabled" : "disabled"}` 
       });
       fetchProducts();
     } catch (error: any) {
@@ -343,6 +347,11 @@ const Admin = () => {
 
   const openEditDialog = (product: Product) => {
     setEditingProduct(product);
+    
+    // Check if sub_category is a custom value
+    const isCustom = product.sub_category && !SUB_CATEGORIES.find(s => s.value === product.sub_category);
+    
+    setUseCustomSubCategory(isCustom || false);
     setFormData({
       name: product.name,
       description: product.description || "",
@@ -351,7 +360,8 @@ const Admin = () => {
       images: product.images || [],
       stock: product.stock?.toString() || "",
       category: product.category || "",
-      sub_category: product.sub_category || "",
+      sub_category: isCustom ? "" : (product.sub_category || ""),
+      custom_sub_category: isCustom ? (product.sub_category || "") : "",
       weight: product.weight || "",
       discount: product.discount?.toString() || "",
       is_active: product.is_active ?? true,
@@ -364,15 +374,8 @@ const Admin = () => {
     setFormErrors({});
     setFormData(initialFormData);
     setNewImageUrl("");
+    setUseCustomSubCategory(false);
   };
-
-  const selectedCategory = getCategoryByValue(formData.category);
-  const selectedSubCategory = formData.sub_category
-    ? getSubCategoryByValue(formData.category, formData.sub_category)
-    : null;
-  const weightOptions = getWeightOptions(formData.category, formData.sub_category);
-  const showSubCategory = selectedCategory?.subCategories && selectedCategory.subCategories.length > 0;
-  const showWeight = weightOptions.length > 0;
 
   const getDisplayPrice = () => {
     if (!formData.price) return "₹0";
@@ -380,6 +383,12 @@ const Admin = () => {
     const discount = formData.discount ? parseFloat(formData.discount) : 0;
     const discountedPrice = price - (price * discount / 100);
     return `₹${discountedPrice.toFixed(2)}`;
+  };
+
+  const getSubCategoryLabel = (subCategory: string | null): string => {
+    if (!subCategory) return "";
+    const predefined = getSubCategoryByValue(subCategory);
+    return predefined ? predefined.label : subCategory;
   };
 
   if (loading) {
@@ -402,7 +411,7 @@ const Admin = () => {
             <ShieldX className="h-16 w-16 text-destructive mx-auto mb-4" />
             <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
             <p className="text-muted-foreground mb-6">
-              You don't have permission to access this page. Admin privileges are required.
+              You don&apos;t have permission to access this page. Admin privileges are required.
             </p>
             <Button onClick={() => navigate("/")}>
               Go to Products
@@ -444,59 +453,104 @@ const Admin = () => {
                   {editingProduct ? "Edit Product" : "Add New Product"}
                 </DialogTitle>
                 <DialogDescription>
-                  Fill in the product details below. Fields marked with * are required.
+                  Fields marked with <span className="text-destructive">*</span> are required. All other fields are optional.
                 </DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Category Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category *</Label>
-                    <Select
-                      value={formData.category}
-                      onValueChange={handleCategoryChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRODUCT_CATEGORIES.map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {formErrors.category && (
-                      <p className="text-sm text-destructive">{formErrors.category}</p>
-                    )}
-                  </div>
-
-                  {showSubCategory && (
+                {/* Category Selection - Mandatory */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg border-b pb-2">Category Selection</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="sub_category">Variety / Type</Label>
+                      <Label htmlFor="category">
+                        Main Category <span className="text-destructive">*</span>
+                      </Label>
                       <Select
-                        value={formData.sub_category}
-                        onValueChange={handleSubCategoryChange}
+                        value={formData.category}
+                        onValueChange={handleCategoryChange}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select variety" />
+                          <SelectValue placeholder="Select category" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {selectedCategory?.subCategories?.map((sub) => (
-                            <SelectItem key={sub.value} value={sub.value}>
-                              {sub.label}
+                        <SelectContent className="bg-background border">
+                          {PRODUCT_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat.value} value={cat.value}>
+                              {cat.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      {formErrors.category && (
+                        <p className="text-sm text-destructive">{formErrors.category}</p>
+                      )}
                     </div>
-                  )}
 
-                  {showWeight && (
                     <div className="space-y-2">
-                      <Label htmlFor="weight">Weight / Pack Size</Label>
+                      <Label htmlFor="sub_category">
+                        Sub-Product / Variety <span className="text-muted-foreground text-xs">(Optional)</span>
+                      </Label>
+                      {useCustomSubCategory ? (
+                        <div className="flex gap-2">
+                          <Input
+                            value={formData.custom_sub_category}
+                            onChange={(e) =>
+                              setFormData({ ...formData, custom_sub_category: e.target.value })
+                            }
+                            placeholder="Enter custom variety"
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setUseCustomSubCategory(false);
+                              setFormData({ ...formData, custom_sub_category: "" });
+                            }}
+                          >
+                            List
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Select
+                            value={formData.sub_category}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, sub_category: value })
+                            }
+                          >
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Select variety" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border">
+                              {SUB_CATEGORIES.map((sub) => (
+                                <SelectItem key={sub.value} value={sub.value}>
+                                  {sub.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setUseCustomSubCategory(true);
+                              setFormData({ ...formData, sub_category: "" });
+                            }}
+                          >
+                            Custom
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="weight">
+                        Weight / Pack Size <span className="text-muted-foreground text-xs">(Optional)</span>
+                      </Label>
                       <Select
                         value={formData.weight}
                         onValueChange={(value) =>
@@ -506,8 +560,8 @@ const Admin = () => {
                         <SelectTrigger>
                           <SelectValue placeholder="Select weight" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {weightOptions.map((w) => (
+                        <SelectContent className="bg-background border">
+                          {WEIGHT_OPTIONS.map((w) => (
                             <SelectItem key={w.value} value={w.value}>
                               {w.label}
                             </SelectItem>
@@ -515,92 +569,111 @@ const Admin = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                  )}
+                  </div>
                 </div>
 
-                {/* Product Name */}
-                <div className="space-y-2">
-                  <Label htmlFor="name">Product Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    maxLength={200}
-                    placeholder="Auto-generated or enter manually"
-                    required
-                  />
-                  {formErrors.name && (
-                    <p className="text-sm text-destructive">{formErrors.name}</p>
-                  )}
-                </div>
-
-                {/* Price, Discount, Stock */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Product Details */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg border-b pb-2">Product Details</h3>
+                  
+                  {/* Product Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price (₹) *</Label>
+                    <Label htmlFor="name">
+                      Product Display Name <span className="text-destructive">*</span>
+                    </Label>
                     <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      value={formData.price}
+                      id="name"
+                      value={formData.name}
                       onChange={(e) =>
-                        setFormData({ ...formData, price: e.target.value })
+                        setFormData({ ...formData, name: e.target.value })
                       }
+                      maxLength={200}
+                      placeholder="Auto-generated from selections or enter manually"
                       required
                     />
-                    {formErrors.price && (
-                      <p className="text-sm text-destructive">{formErrors.price}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Name is auto-generated from your selections. You can edit it manually.
+                    </p>
+                    {formErrors.name && (
+                      <p className="text-sm text-destructive">{formErrors.name}</p>
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="discount">Discount (%)</Label>
-                    <Input
-                      id="discount"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={formData.discount}
-                      onChange={(e) =>
-                        setFormData({ ...formData, discount: e.target.value })
-                      }
-                      placeholder="0"
-                    />
-                    {formErrors.discount && (
-                      <p className="text-sm text-destructive">{formErrors.discount}</p>
-                    )}
-                  </div>
+                  {/* Price, Discount, Stock */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="price">
+                        Price (₹) <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={formData.price}
+                        onChange={(e) =>
+                          setFormData({ ...formData, price: e.target.value })
+                        }
+                        placeholder="Enter price"
+                        required
+                      />
+                      {formErrors.price && (
+                        <p className="text-sm text-destructive">{formErrors.price}</p>
+                      )}
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="stock">Stock Quantity</Label>
-                    <Input
-                      id="stock"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={formData.stock}
-                      onChange={(e) =>
-                        setFormData({ ...formData, stock: e.target.value })
-                      }
-                      placeholder="0"
-                    />
-                    {formErrors.stock && (
-                      <p className="text-sm text-destructive">{formErrors.stock}</p>
-                    )}
+                    <div className="space-y-2">
+                      <Label htmlFor="discount">
+                        Discount (%) <span className="text-muted-foreground text-xs">(Optional)</span>
+                      </Label>
+                      <Input
+                        id="discount"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={formData.discount}
+                        onChange={(e) =>
+                          setFormData({ ...formData, discount: e.target.value })
+                        }
+                        placeholder="0"
+                      />
+                      {formErrors.discount && (
+                        <p className="text-sm text-destructive">{formErrors.discount}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="stock">
+                        Stock Quantity <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="stock"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={formData.stock}
+                        onChange={(e) =>
+                          setFormData({ ...formData, stock: e.target.value })
+                        }
+                        placeholder="0"
+                        required
+                      />
+                      {formErrors.stock && (
+                        <p className="text-sm text-destructive">{formErrors.stock}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Images */}
                 <div className="space-y-4">
-                  <Label>Product Images</Label>
+                  <h3 className="font-semibold text-lg border-b pb-2">Product Images</h3>
+                  
                   <div className="flex gap-2">
                     <Input
                       value={newImageUrl}
                       onChange={(e) => setNewImageUrl(e.target.value)}
-                      placeholder="Enter image URL"
+                      placeholder="Enter image URL and click + to add"
                       className="flex-1"
                     />
                     <Button type="button" variant="outline" onClick={addImageUrl}>
@@ -624,13 +697,20 @@ const Admin = () => {
                           >
                             <X className="h-3 w-3" />
                           </button>
+                          {idx === 0 && (
+                            <span className="absolute bottom-0 left-0 right-0 bg-primary/80 text-primary-foreground text-xs text-center py-0.5 rounded-b-lg">
+                              Primary
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
 
                   <div className="space-y-2">
-                    <Label htmlFor="image_url">Primary Image URL</Label>
+                    <Label htmlFor="image_url">
+                      Primary Image URL <span className="text-muted-foreground text-xs">(Optional)</span>
+                    </Label>
                     <Input
                       id="image_url"
                       type="url"
@@ -648,7 +728,9 @@ const Admin = () => {
 
                 {/* Description */}
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">
+                    Description <span className="text-muted-foreground text-xs">(Optional)</span>
+                  </Label>
                   <Textarea
                     id="description"
                     value={formData.description}
@@ -691,7 +773,7 @@ const Admin = () => {
                       Product Preview
                     </CardTitle>
                     <CardDescription>
-                      Preview how your product will appear
+                      Preview how your product will appear to customers
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -717,14 +799,16 @@ const Admin = () => {
                               {getCategoryByValue(formData.category)?.label}
                             </Badge>
                           )}
-                          {formData.sub_category && (
+                          {(formData.sub_category || formData.custom_sub_category) && (
                             <Badge variant="outline">
-                              {selectedSubCategory?.label}
+                              {useCustomSubCategory 
+                                ? formData.custom_sub_category 
+                                : getSubCategoryByValue(formData.sub_category)?.label}
                             </Badge>
                           )}
                           {formData.weight && (
                             <Badge variant="outline">
-                              {formData.weight.toUpperCase().replace("KG", " KG")}
+                              {formatWeight(formData.weight)}
                             </Badge>
                           )}
                         </div>
@@ -807,7 +891,7 @@ const Admin = () => {
                       <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                       <p className="text-muted-foreground">No products found</p>
                       <p className="text-sm text-muted-foreground">
-                        Click "Add Product" to create your first product
+                        Click &quot;Add Product&quot; to create your first product
                       </p>
                     </td>
                   </tr>
@@ -836,7 +920,7 @@ const Admin = () => {
                           </Badge>
                           {product.sub_category && (
                             <span className="text-sm text-muted-foreground">
-                              {getSubCategoryByValue(product.category || "", product.sub_category)?.label}
+                              {getSubCategoryLabel(product.sub_category)}
                             </span>
                           )}
                         </div>
@@ -844,7 +928,7 @@ const Admin = () => {
                       <td className="p-4 hidden lg:table-cell">
                         {product.weight ? (
                           <Badge variant="outline">
-                            {product.weight.toUpperCase().replace("KG", " KG")}
+                            {formatWeight(product.weight)}
                           </Badge>
                         ) : "-"}
                       </td>

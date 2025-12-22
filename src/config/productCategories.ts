@@ -1,4 +1,4 @@
-// Product category configuration with dynamic sub-categories and weight options
+// Product category configuration with flexible sub-categories and weight options
 
 export interface WeightOption {
   value: string;
@@ -8,101 +8,59 @@ export interface WeightOption {
 export interface SubCategoryOption {
   value: string;
   label: string;
-  weights?: WeightOption[];
 }
 
 export interface CategoryConfig {
   value: string;
   label: string;
-  subCategories?: SubCategoryOption[];
-  weights?: WeightOption[];
 }
 
+// Main product categories
 export const PRODUCT_CATEGORIES: CategoryConfig[] = [
-  {
-    value: "chawal",
-    label: "Chawal",
-    subCategories: [
-      { value: "parmal_chawal", label: "Parmal Chawal" },
-      { value: "kataranj_chawal", label: "Kataranj Chawal" },
-      { value: "basmati_chawal", label: "Basmati Chawal" },
-      { value: "sona_masoori", label: "Sona Masoori" },
-      { value: "biryani_rice", label: "Biryani Rice" },
-    ],
-  },
-  {
-    value: "atta",
-    label: "Atta",
-    weights: [
-      { value: "5kg", label: "5 KG" },
-      { value: "10kg", label: "10 KG" },
-      { value: "15kg", label: "15 KG" },
-      { value: "25kg", label: "25 KG" },
-    ],
-  },
-  {
-    value: "kapila",
-    label: "Kapila",
-    subCategories: [
-      {
-        value: "special_kapila",
-        label: "Special Kapila",
-        weights: [
-          { value: "25kg", label: "25 KG" },
-          { value: "50kg", label: "50 KG" },
-        ],
-      },
-      {
-        value: "bypass_kapila",
-        label: "By-Pass Kapila",
-        weights: [
-          { value: "25kg", label: "25 KG" },
-          { value: "50kg", label: "50 KG" },
-        ],
-      },
-    ],
-  },
-  {
-    value: "chokar",
-    label: "Chokar",
-    weights: [
-      { value: "35kg", label: "35 KG" },
-      { value: "44kg", label: "44 KG" },
-      { value: "48kg", label: "48 KG" },
-    ],
-  },
+  { value: "chawal", label: "Chawal" },
+  { value: "atta", label: "Atta" },
+  { value: "kapila", label: "Kapila" },
+  { value: "chokar", label: "Chokar" },
+];
+
+// Predefined sub-categories/varieties (available for all categories)
+export const SUB_CATEGORIES: SubCategoryOption[] = [
+  { value: "parmal_chawal", label: "Parmal Chawal" },
+  { value: "kataranj_chawal", label: "Kataranj Chawal" },
+  { value: "basmati_chawal", label: "Basmati Chawal" },
+  { value: "sona_masoori", label: "Sona Masoori" },
+  { value: "biryani_rice", label: "Biryani Rice" },
+  { value: "special_kapila", label: "Special Kapila" },
+  { value: "bypass_kapila", label: "By-Pass Kapila" },
+];
+
+// Unified weight options (available for all categories)
+export const WEIGHT_OPTIONS: WeightOption[] = [
+  { value: "5kg", label: "5 KG" },
+  { value: "10kg", label: "10 KG" },
+  { value: "15kg", label: "15 KG" },
+  { value: "25kg", label: "25 KG" },
+  { value: "35kg", label: "35 KG" },
+  { value: "44kg", label: "44 KG" },
+  { value: "48kg", label: "48 KG" },
+  { value: "50kg", label: "50 KG" },
 ];
 
 export const getCategoryByValue = (value: string): CategoryConfig | undefined => {
   return PRODUCT_CATEGORIES.find((cat) => cat.value === value);
 };
 
-export const getSubCategoryByValue = (
-  category: string,
-  subCategory: string
-): SubCategoryOption | undefined => {
-  const cat = getCategoryByValue(category);
-  return cat?.subCategories?.find((sub) => sub.value === subCategory);
+export const getSubCategoryByValue = (value: string): SubCategoryOption | undefined => {
+  return SUB_CATEGORIES.find((sub) => sub.value === value);
 };
 
-export const getWeightOptions = (
-  category: string,
-  subCategory?: string
-): WeightOption[] => {
-  const cat = getCategoryByValue(category);
-  
-  if (!cat) return [];
-  
-  // If category has sub-categories with weights (like Kapila)
-  if (subCategory && cat.subCategories) {
-    const sub = cat.subCategories.find((s) => s.value === subCategory);
-    if (sub?.weights) return sub.weights;
-  }
-  
-  // If category has direct weights (like Atta, Chokar)
-  if (cat.weights) return cat.weights;
-  
-  return [];
+export const getWeightByValue = (value: string): WeightOption | undefined => {
+  return WEIGHT_OPTIONS.find((w) => w.value === value);
+};
+
+export const formatWeight = (weight: string): string => {
+  if (!weight) return "";
+  return weight.toUpperCase().replace("KG", " KG");
 };
 
 export const generateProductName = (
@@ -110,20 +68,30 @@ export const generateProductName = (
   subCategory?: string,
   weight?: string
 ): string => {
+  const parts: string[] = [];
+  
+  // Add category
   const cat = getCategoryByValue(category);
-  if (!cat) return "";
+  if (cat) {
+    parts.push(cat.label);
+  }
   
-  let name = cat.label;
-  
+  // Add sub-category if provided
   if (subCategory) {
-    const sub = getSubCategoryByValue(category, subCategory);
-    if (sub) name = sub.label;
+    // Check if it's a predefined sub-category
+    const sub = getSubCategoryByValue(subCategory);
+    if (sub) {
+      parts.push(sub.label);
+    } else {
+      // Custom sub-category - use as is
+      parts.push(subCategory);
+    }
   }
   
+  // Add weight if provided
   if (weight) {
-    const weightLabel = weight.toUpperCase().replace("KG", " KG");
-    name = `${name} - ${weightLabel}`;
+    parts.push(formatWeight(weight));
   }
   
-  return name;
+  return parts.join(" – ");
 };
