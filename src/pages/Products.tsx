@@ -5,8 +5,8 @@ import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { SEO } from "@/components/SEO";
 import { AISearch } from "@/components/AISearch";
-import { Loader2, ChevronDown, Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Loader2, ChevronDown } from "lucide-react";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,7 +59,7 @@ const Products = () => {
   const [selectedKapilaVariety, setSelectedKapilaVariety] = useState<string | null>(null);
   const [selectedAttaVariety, setSelectedAttaVariety] = useState<string | null>(null);
   const [selectedChokarVariety, setSelectedChokarVariety] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  
   const [aiSearchResults, setAiSearchResults] = useState<Product[] | null>(null);
   const productsRef = useRef<HTMLDivElement>(null);
 
@@ -97,16 +97,6 @@ const Products = () => {
     
     let filtered = products;
     
-    // Apply search filter first
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (p) =>
-          p.name.toLowerCase().includes(query) ||
-          p.description?.toLowerCase().includes(query) ||
-          p.category?.toLowerCase().includes(query)
-      );
-    }
     
     // Then apply category filter
     if (selectedCategory === "All") return filtered;
@@ -128,7 +118,6 @@ const Products = () => {
   const handleAISearchResults = (results: Product[] | null) => {
     setAiSearchResults(results);
     setSelectedCategory("All");
-    setSearchQuery("");
   };
 
   const handleClearAISearch = () => {
@@ -163,9 +152,6 @@ const Products = () => {
     setSelectedChokarVariety(variety);
   };
 
-  const clearSearch = () => {
-    setSearchQuery("");
-  };
 
   return (
     <div className="min-h-screen">
@@ -201,27 +187,6 @@ const Products = () => {
           </div>
         )}
 
-        {/* Search Bar */}
-        <div className="max-w-md mx-auto mb-6 sm:mb-8">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-10 glass-input rounded-full h-10 sm:h-11"
-            />
-            {searchQuery && (
-              <button
-                onClick={clearSearch}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        </div>
 
         {/* Category Filter */}
         <div className="flex flex-wrap gap-2 sm:gap-3 justify-center mb-6 sm:mb-10 px-1">
@@ -389,7 +354,7 @@ const Products = () => {
         ) : filteredProducts.length === 0 ? (
           <div className="text-center glass-card rounded-2xl p-8 sm:p-12">
             <p className="text-lg sm:text-xl text-muted-foreground">
-              {searchQuery ? `No products found for "${searchQuery}"` : "No products found"}
+              No products found
             </p>
           </div>
         ) : (
