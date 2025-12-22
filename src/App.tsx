@@ -10,6 +10,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Cart from "./pages/Cart";
 import Admin from "./pages/Admin";
 import AdminOrders from "./pages/AdminOrders";
+import Profile from "./pages/Profile";
 import ProductComparison from "./pages/ProductComparison";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/cart" element={<Cart />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/orders" element={<AdminOrders />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/compare" element={<ProductComparison />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-confirmation" element={<OrderConfirmation />} />
