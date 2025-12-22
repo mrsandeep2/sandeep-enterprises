@@ -93,6 +93,7 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [justSelected, setJustSelected] = useState(false); // Flag to prevent showing suggestions after selection
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -356,6 +357,8 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
   const handleSuggestionClick = (product: Product) => {
     setQuery(product.name);
     setShowSuggestions(false);
+    setSuggestions([]); // Clear suggestions after selection
+    setJustSelected(true); // Prevent suggestions from showing again
     onResults([product]);
     setHasSearched(true);
   };
@@ -436,9 +439,12 @@ export const AISearch = ({ onResults, onClear }: AISearchProps) => {
             type="text"
             placeholder={isListening ? "Listening..." : "Try: 'basmati' or 'cattle feed' or 'atta'"}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setJustSelected(false); // Reset flag when user types
+            }}
             onKeyDown={handleKeyDown}
-            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+            onFocus={() => !justSelected && suggestions.length > 0 && setShowSuggestions(true)}
             className={`pl-10 pr-20 h-12 rounded-full border-2 transition-all ${
               isListening 
                 ? 'border-red-500 bg-red-50 dark:bg-red-950/20 animate-pulse' 
