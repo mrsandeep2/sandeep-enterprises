@@ -141,6 +141,33 @@ const AdminOrders = () => {
     "Order details incorrect",
     "Other",
   ];
+  
+  // Delete order state
+  const [deleteOrderId, setDeleteOrderId] = useState<string | null>(null);
+  const [deletingOrder, setDeletingOrder] = useState(false);
+
+  const handleDeleteOrder = async () => {
+    if (!deleteOrderId) return;
+    setDeletingOrder(true);
+    
+    try {
+      // Delete order items first
+      await supabase.from("order_items").delete().eq("order_id", deleteOrderId);
+      // Then delete order
+      const { error } = await supabase.from("orders").delete().eq("id", deleteOrderId);
+      
+      if (error) throw error;
+      
+      setOrders(prev => prev.filter(o => o.id !== deleteOrderId));
+      toast({ title: "Order Deleted", description: "Order has been removed from history" });
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      toast({ title: "Error", description: "Failed to delete order", variant: "destructive" });
+    } finally {
+      setDeletingOrder(false);
+      setDeleteOrderId(null);
+    }
+  };
 
   useEffect(() => {
     checkAuthAndRole();
