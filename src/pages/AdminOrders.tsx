@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
@@ -84,6 +86,8 @@ interface Order {
   phone: string | null;
   notes: string | null;
   admin_notes: string | null;
+  cancellation_reason: string | null;
+  cancelled_by: string | null;
   order_items?: OrderItem[];
   profile?: {
     username: string | null;
@@ -122,6 +126,21 @@ const AdminOrders = () => {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  
+  // Cancel dialog state
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [selectedCancelReason, setSelectedCancelReason] = useState("");
+  const [cancellingOrder, setCancellingOrder] = useState(false);
+  
+  const ADMIN_CANCEL_REASONS = [
+    "Out of stock",
+    "Payment issue",
+    "Customer request",
+    "Delivery not possible to location",
+    "Order details incorrect",
+    "Other",
+  ];
 
   useEffect(() => {
     checkAuthAndRole();
@@ -130,6 +149,61 @@ const AdminOrders = () => {
   useEffect(() => {
     filterOrders();
   }, [orders, searchQuery, statusFilter]);
+
+  // Real-time subscription for orders
+  useEffect(() => {
+    if (!isAdmin) return;
+    
+    const orderChannel = supabase
+      .channel('admin-orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          const updatedOrder = payload.new as Order;
+          setOrders(prev => {
+            const existing = prev.find(o => o.id === updatedOrder.id);
+            if (existing && existing.status !== updatedOrder.status && updatedOrder.cancelled_by === 'user') {
+              toast({
+                title: "Order Cancelled by Customer",
+                description: `Order #${updatedOrder.id.slice(0, 8)} was cancelled. Reason: ${updatedOrder.cancellation_reason || 'Not provided'}`,
+                variant: "destructive",
+              });
+            }
+            
+            return prev.map(order => 
+              order.id === updatedOrder.id 
+                ? { 
+                    ...order, 
+                    status: updatedOrder.status,
+                    cancellation_reason: updatedOrder.cancellation_reason,
+                    cancelled_by: updatedOrder.cancelled_by,
+                  }
+                : order
+            );
+          });
+          
+          // Update selected order if viewing
+          if (selectedOrder?.id === updatedOrder.id) {
+            setSelectedOrder(prev => prev ? {
+              ...prev,
+              status: updatedOrder.status,
+              cancellation_reason: updatedOrder.cancellation_reason,
+              cancelled_by: updatedOrder.cancelled_by,
+            } : null);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(orderChannel);
+    };
+  }, [isAdmin, selectedOrder?.id, toast]);
 
   const checkAuthAndRole = async () => {
     try {
@@ -261,6 +335,12 @@ const AdminOrders = () => {
       });
       return;
     }
+    
+    // For cancellation, show reason dialog
+    if (newStatus === "cancelled") {
+      setShowCancelDialog(true);
+      return;
+    }
 
     setUpdatingStatus(true);
     try {
@@ -361,6 +441,77 @@ const AdminOrders = () => {
       });
     } finally {
       setSavingNotes(false);
+    }
+  };
+
+  const handleAdminCancelOrder = async () => {
+    if (!selectedOrder) return;
+    
+    const finalReason = selectedCancelReason === "Other" 
+      ? cancelReason.trim() 
+      : selectedCancelReason;
+      
+    if (!finalReason) {
+      toast({
+        title: "Reason Required",
+        description: "Please select or enter a reason for cancellation",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setCancellingOrder(true);
+    
+    try {
+      const currentStatus = selectedOrder.status;
+      
+      // Update order status with reason
+      const { error: updateError } = await supabase
+        .from("orders")
+        .update({ 
+          status: "cancelled",
+          cancellation_reason: finalReason,
+          cancelled_by: "admin"
+        })
+        .eq("id", selectedOrder.id);
+
+      if (updateError) throw updateError;
+
+      // Handle stock restoration if order was confirmed/shipped
+      if (currentStatus !== "pending") {
+        await updateStock(selectedOrder.id, "restore");
+      }
+
+      // Update local state
+      setOrders(prev => prev.map(o => 
+        o.id === selectedOrder.id 
+          ? { ...o, status: "cancelled", cancellation_reason: finalReason, cancelled_by: "admin" } 
+          : o
+      ));
+      setSelectedOrder(prev => prev ? { 
+        ...prev, 
+        status: "cancelled", 
+        cancellation_reason: finalReason, 
+        cancelled_by: "admin" 
+      } : null);
+
+      toast({
+        title: "Order Cancelled",
+        description: "Order has been cancelled and customer will be notified",
+      });
+      
+      setShowCancelDialog(false);
+      setCancelReason("");
+      setSelectedCancelReason("");
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel order",
+        variant: "destructive",
+      });
+    } finally {
+      setCancellingOrder(false);
     }
   };
 
@@ -687,6 +838,21 @@ const AdminOrders = () => {
                 </Card>
               )}
 
+              {/* Cancellation Reason (if cancelled) */}
+              {selectedOrder.status === "cancelled" && selectedOrder.cancellation_reason && (
+                <Card className="border-destructive/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                      <XCircle className="h-5 w-5" />
+                      Cancellation Reason ({selectedOrder.cancelled_by === 'admin' ? 'by Admin' : 'by Customer'})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">{selectedOrder.cancellation_reason}</p>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Admin Notes */}
               <Card>
                 <CardHeader className="pb-3">
@@ -718,6 +884,69 @@ const AdminOrders = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Cancel Order Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowCancelDialog(false);
+          setCancelReason("");
+          setSelectedCancelReason("");
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-destructive" />
+              Cancel Order
+            </DialogTitle>
+            <DialogDescription>
+              Please provide a reason for cancelling this order. The customer will be notified.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <RadioGroup value={selectedCancelReason} onValueChange={setSelectedCancelReason}>
+              {ADMIN_CANCEL_REASONS.map((reason) => (
+                <div key={reason} className="flex items-center space-x-2">
+                  <RadioGroupItem value={reason} id={`admin-${reason}`} />
+                  <Label htmlFor={`admin-${reason}`} className="font-normal cursor-pointer">{reason}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+            
+            {selectedCancelReason === "Other" && (
+              <Textarea
+                placeholder="Please describe the reason..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={3}
+              />
+            )}
+          </div>
+          
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowCancelDialog(false);
+                setCancelReason("");
+                setSelectedCancelReason("");
+              }}
+              disabled={cancellingOrder}
+            >
+              Keep Order
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleAdminCancelOrder}
+              disabled={cancellingOrder || !selectedCancelReason || (selectedCancelReason === "Other" && !cancelReason.trim())}
+            >
+              {cancellingOrder && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Confirm Cancellation
             </Button>
           </DialogFooter>
         </DialogContent>

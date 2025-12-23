@@ -5,6 +5,8 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/contexts/NotificationContext";
 import {
@@ -86,6 +88,9 @@ interface Order {
   delivery_method: string | null;
   phone: string | null;
   notes: string | null;
+  admin_notes: string | null;
+  cancellation_reason: string | null;
+  cancelled_by: string | null;
   order_items?: OrderItem[];
 }
 
@@ -154,6 +159,17 @@ const Profile = () => {
   // Cancel order state
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [cancellingOrder, setCancellingOrder] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [selectedCancelReason, setSelectedCancelReason] = useState("");
+  
+  const CANCEL_REASONS = [
+    "Changed my mind",
+    "Found better price elsewhere",
+    "Ordered by mistake",
+    "Delivery time too long",
+    "Financial reasons",
+    "Other",
+  ];
 
   useEffect(() => {
     checkAuthAndFetchData();
@@ -175,17 +191,33 @@ const Profile = () => {
           setOrders(prev => {
             const updated = prev.map(order => 
               order.id === updatedOrder.id 
-                ? { ...order, status: updatedOrder.status }
+                ? { 
+                    ...order, 
+                    status: updatedOrder.status,
+                    cancellation_reason: updatedOrder.cancellation_reason,
+                    cancelled_by: updatedOrder.cancelled_by,
+                    admin_notes: updatedOrder.admin_notes,
+                  }
                 : order
             );
             
             const existingOrder = prev.find(o => o.id === updatedOrder.id);
             if (existingOrder && existingOrder.status !== updatedOrder.status) {
               const statusConfig = getStatusConfig(updatedOrder.status);
-              toast({
-                title: "Order Status Updated!",
-                description: `Your order is now: ${statusConfig.label}`,
-              });
+              
+              // If admin cancelled the order, show detailed message
+              if (updatedOrder.status === 'cancelled' && updatedOrder.cancelled_by === 'admin') {
+                toast({
+                  title: "Order Cancelled by Admin",
+                  description: updatedOrder.cancellation_reason || "Your order has been cancelled by the admin.",
+                  variant: "destructive",
+                });
+              } else {
+                toast({
+                  title: "Order Status Updated!",
+                  description: `Your order is now: ${statusConfig.label}`,
+                });
+              }
             }
             
             return updated;
@@ -406,6 +438,21 @@ const Profile = () => {
 
   const handleCancelOrder = async () => {
     if (!cancelOrderId) return;
+    
+    // Validate reason
+    const finalReason = selectedCancelReason === "Other" 
+      ? cancelReason.trim() 
+      : selectedCancelReason;
+      
+    if (!finalReason) {
+      toast({
+        title: "Reason Required",
+        description: "Please select or enter a reason for cancellation",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setCancellingOrder(true);
 
     const order = orders.find(o => o.id === cancelOrderId);
@@ -415,10 +462,14 @@ const Profile = () => {
       return;
     }
 
-    // Update order status
+    // Update order status with reason
     const { error: orderError } = await supabase
       .from("orders")
-      .update({ status: "cancelled" })
+      .update({ 
+        status: "cancelled",
+        cancellation_reason: finalReason,
+        cancelled_by: "user"
+      })
       .eq("id", cancelOrderId);
 
     if (orderError) {
@@ -455,7 +506,7 @@ const Profile = () => {
     }
 
     setOrders(prev => prev.map(o => 
-      o.id === cancelOrderId ? { ...o, status: "cancelled" } : o
+      o.id === cancelOrderId ? { ...o, status: "cancelled", cancellation_reason: finalReason, cancelled_by: "user" } : o
     ));
 
     toast({
@@ -465,6 +516,8 @@ const Profile = () => {
     
     setCancellingOrder(false);
     setCancelOrderId(null);
+    setCancelReason("");
+    setSelectedCancelReason("");
   };
 
 
@@ -722,6 +775,17 @@ const Profile = () => {
                                   <div className="text-sm">
                                     <p className="font-medium">Notes</p>
                                     <p className="text-muted-foreground">{order.notes}</p>
+                                  </div>
+                                )}
+
+                                {/* Show cancellation reason if cancelled */}
+                                {isCancelled && order.cancellation_reason && (
+                                  <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                                    <p className="font-medium text-destructive text-sm flex items-center gap-2">
+                                      <XCircle className="h-4 w-4" />
+                                      Cancellation Reason ({order.cancelled_by === 'admin' ? 'by Admin' : 'by You'})
+                                    </p>
+                                    <p className="text-sm text-muted-foreground mt-1">{order.cancellation_reason}</p>
                                   </div>
                                 )}
 
@@ -1053,28 +1117,68 @@ const Profile = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Cancel Order Confirmation */}
-      <AlertDialog open={!!cancelOrderId} onOpenChange={() => setCancelOrderId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Order?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to cancel this order? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancellingOrder}>Keep Order</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancelOrder}
+      {/* Cancel Order Dialog with Reason */}
+      <Dialog open={!!cancelOrderId} onOpenChange={(open) => {
+        if (!open) {
+          setCancelOrderId(null);
+          setCancelReason("");
+          setSelectedCancelReason("");
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-destructive" />
+              Cancel Order
+            </DialogTitle>
+            <DialogDescription>
+              Please tell us why you want to cancel this order.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <RadioGroup value={selectedCancelReason} onValueChange={setSelectedCancelReason}>
+              {CANCEL_REASONS.map((reason) => (
+                <div key={reason} className="flex items-center space-x-2">
+                  <RadioGroupItem value={reason} id={reason} />
+                  <Label htmlFor={reason} className="font-normal cursor-pointer">{reason}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+            
+            {selectedCancelReason === "Other" && (
+              <Textarea
+                placeholder="Please describe your reason..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={3}
+              />
+            )}
+          </div>
+          
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setCancelOrderId(null);
+                setCancelReason("");
+                setSelectedCancelReason("");
+              }}
               disabled={cancellingOrder}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {cancellingOrder ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Yes, Cancel Order
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              Keep Order
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelOrder}
+              disabled={cancellingOrder || !selectedCancelReason || (selectedCancelReason === "Other" && !cancelReason.trim())}
+            >
+              {cancellingOrder && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Confirm Cancellation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

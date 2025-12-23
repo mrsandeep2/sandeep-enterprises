@@ -56,6 +56,8 @@ export type Database = {
       orders: {
         Row: {
           admin_notes: string | null
+          cancellation_reason: string | null
+          cancelled_by: string | null
           created_at: string | null
           delivery_method: string | null
           id: string
@@ -68,6 +70,8 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          cancellation_reason?: string | null
+          cancelled_by?: string | null
           created_at?: string | null
           delivery_method?: string | null
           id?: string
@@ -80,6 +84,8 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          cancellation_reason?: string | null
+          cancelled_by?: string | null
           created_at?: string | null
           delivery_method?: string | null
           id?: string
