@@ -31,6 +31,7 @@ import {
   Trash2,
   Save,
   X,
+  History,
 } from "lucide-react";
 import {
   Card,
@@ -609,82 +610,82 @@ const Profile = () => {
 
           {/* Orders Tab */}
           <TabsContent value="orders">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  My Orders
-                </CardTitle>
-                <CardDescription>
-                  Track your orders in real-time. You can cancel orders before they are shipped.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {orders.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">No orders yet</p>
-                    <Button 
-                      variant="default" 
-                      className="mt-4"
-                      onClick={() => navigate("/")}
-                    >
-                      Start Shopping
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {orders.map((order) => {
-                      const statusConfig = getStatusConfig(order.status);
-                      const statusIndex = getStatusIndex(order.status);
-                      const isExpanded = expandedOrders.has(order.id);
-                      const isCancelled = order.status === "cancelled";
-                      const canCancel = canCancelOrder(order.status);
+            <div className="space-y-6">
+              {/* Ongoing Orders Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Truck className="h-5 w-5" />
+                    Ongoing Orders
+                  </CardTitle>
+                  <CardDescription>
+                    Track your active orders in real-time. You can cancel orders before they are shipped.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled').length === 0 ? (
+                    <div className="text-center py-8">
+                      <Package className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-muted-foreground">No ongoing orders</p>
+                      <Button 
+                        variant="default" 
+                        className="mt-4"
+                        onClick={() => navigate("/")}
+                      >
+                        Start Shopping
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled').map((order) => {
+                        const statusConfig = getStatusConfig(order.status);
+                        const statusIndex = getStatusIndex(order.status);
+                        const isExpanded = expandedOrders.has(order.id);
+                        const canCancel = canCancelOrder(order.status);
 
-                      return (
-                        <Collapsible
-                          key={order.id}
-                          open={isExpanded}
-                          onOpenChange={() => toggleOrderExpanded(order.id)}
-                        >
-                          <div className="border rounded-lg overflow-hidden">
-                            <CollapsibleTrigger asChild>
-                              <div className="p-4 cursor-pointer hover:bg-muted/50 transition-colors">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-mono text-xs text-muted-foreground">
-                                        #{order.id.slice(0, 8)}
-                                      </span>
-                                      <Badge className={`${statusConfig.color} text-white`}>
-                                        <statusConfig.icon className="h-3 w-3 mr-1" />
-                                        {statusConfig.label}
-                                      </Badge>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">
-                                      {formatDate(order.created_at)}
-                                    </p>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-4">
-                                    <div className="text-right">
-                                      <p className="font-semibold flex items-center">
-                                        <IndianRupee className="h-4 w-4" />
-                                        {order.total}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {order.order_items?.length || 0} items
+                        return (
+                          <Collapsible
+                            key={order.id}
+                            open={isExpanded}
+                            onOpenChange={() => toggleOrderExpanded(order.id)}
+                          >
+                            <div className="border rounded-lg overflow-hidden">
+                              <CollapsibleTrigger asChild>
+                                <div className="p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-mono text-xs text-muted-foreground">
+                                          #{order.id.slice(0, 8)}
+                                        </span>
+                                        <Badge className={`${statusConfig.color} text-white`}>
+                                          <statusConfig.icon className="h-3 w-3 mr-1" />
+                                          {statusConfig.label}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">
+                                        {formatDate(order.created_at)}
                                       </p>
                                     </div>
-                                    {isExpanded ? (
-                                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                                    ) : (
-                                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                                    )}
+                                    
+                                    <div className="flex items-center gap-4">
+                                      <div className="text-right">
+                                        <p className="font-semibold flex items-center">
+                                          <IndianRupee className="h-4 w-4" />
+                                          {order.total}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {order.order_items?.length || 0} items
+                                        </p>
+                                      </div>
+                                      {isExpanded ? (
+                                        <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                                      ) : (
+                                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
 
-                                {!isCancelled && (
                                   <div className="mt-4">
                                     <div className="flex items-center justify-between mb-2">
                                       {ORDER_STATUSES.filter(s => s.value !== "cancelled").map((status, index) => {
@@ -718,103 +719,238 @@ const Profile = () => {
                                       />
                                     </div>
                                   </div>
-                                )}
-                              </div>
-                            </CollapsibleTrigger>
-
-                            <CollapsibleContent>
-                              <div className="border-t p-4 bg-muted/30 space-y-4">
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                  <div className="flex items-start gap-2 text-sm">
-                                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                    <div>
-                                      <p className="font-medium">Delivery Address</p>
-                                      <p className="text-muted-foreground">{formatAddress(order.shipping_address)}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-start gap-2 text-sm">
-                                    <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                    <div>
-                                      <p className="font-medium">Phone</p>
-                                      <p className="text-muted-foreground">{order.phone || "N/A"}</p>
-                                    </div>
-                                  </div>
                                 </div>
+                              </CollapsibleTrigger>
 
-                                <div>
-                                  <p className="font-medium mb-2">Order Items</p>
-                                  <div className="space-y-2">
-                                    {order.order_items?.map((item) => (
-                                      <div 
-                                        key={item.id} 
-                                        className="flex items-center gap-3 p-2 bg-background rounded-lg"
-                                      >
-                                        <img
-                                          src={item.product?.image_url || "https://via.placeholder.com/50"}
-                                          alt={item.product?.name || "Product"}
-                                          className="w-12 h-12 object-cover rounded"
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                          <p className="font-medium text-sm truncate">
-                                            {item.product?.name || "Unknown Product"}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground">
-                                            {item.product?.category} {item.product?.weight && `• ${item.product.weight}`}
-                                          </p>
-                                        </div>
-                                        <div className="text-right text-sm">
-                                          <p>₹{item.price} × {item.quantity}</p>
-                                          <p className="font-medium">₹{item.price * item.quantity}</p>
-                                        </div>
+                              <CollapsibleContent>
+                                <div className="border-t p-4 bg-muted/30 space-y-4">
+                                  <div className="grid gap-3 sm:grid-cols-2">
+                                    <div className="flex items-start gap-2 text-sm">
+                                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                      <div>
+                                        <p className="font-medium">Delivery Address</p>
+                                        <p className="text-muted-foreground">{formatAddress(order.shipping_address)}</p>
                                       </div>
-                                    ))}
+                                    </div>
+                                    <div className="flex items-start gap-2 text-sm">
+                                      <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                      <div>
+                                        <p className="font-medium">Phone</p>
+                                        <p className="text-muted-foreground">{order.phone || "N/A"}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <p className="font-medium mb-2">Order Items</p>
+                                    <div className="space-y-2">
+                                      {order.order_items?.map((item) => (
+                                        <div 
+                                          key={item.id} 
+                                          className="flex items-center gap-3 p-2 bg-background rounded-lg"
+                                        >
+                                          <img
+                                            src={item.product?.image_url || "https://via.placeholder.com/50"}
+                                            alt={item.product?.name || "Product"}
+                                            className="w-12 h-12 object-cover rounded"
+                                          />
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-sm truncate">
+                                              {item.product?.name || "Unknown Product"}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                              {item.product?.category} {item.product?.weight && `• ${item.product.weight}`}
+                                            </p>
+                                          </div>
+                                          <div className="text-right text-sm">
+                                            <p>₹{item.price} × {item.quantity}</p>
+                                            <p className="font-medium">₹{item.price * item.quantity}</p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {order.notes && (
+                                    <div className="text-sm">
+                                      <p className="font-medium">Notes</p>
+                                      <p className="text-muted-foreground">{order.notes}</p>
+                                    </div>
+                                  )}
+
+                                  {canCancel && (
+                                    <div className="pt-2">
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setCancelOrderId(order.id);
+                                        }}
+                                        className="gap-2"
+                                      >
+                                        <XCircle className="h-4 w-4" />
+                                        Cancel Order
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              </CollapsibleContent>
+                            </div>
+                          </Collapsible>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Order History Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Order History
+                  </CardTitle>
+                  <CardDescription>
+                    View your completed and cancelled orders
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {orders.filter(o => o.status === 'delivered' || o.status === 'cancelled').length === 0 ? (
+                    <div className="text-center py-8">
+                      <History className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-muted-foreground">No order history yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders.filter(o => o.status === 'delivered' || o.status === 'cancelled').map((order) => {
+                        const statusConfig = getStatusConfig(order.status);
+                        const isExpanded = expandedOrders.has(order.id);
+                        const isCancelled = order.status === "cancelled";
+
+                        return (
+                          <Collapsible
+                            key={order.id}
+                            open={isExpanded}
+                            onOpenChange={() => toggleOrderExpanded(order.id)}
+                          >
+                            <div className="border rounded-lg overflow-hidden">
+                              <CollapsibleTrigger asChild>
+                                <div className="p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-mono text-xs text-muted-foreground">
+                                          #{order.id.slice(0, 8)}
+                                        </span>
+                                        <Badge className={`${statusConfig.color} text-white`}>
+                                          <statusConfig.icon className="h-3 w-3 mr-1" />
+                                          {statusConfig.label}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">
+                                        {formatDate(order.created_at)}
+                                      </p>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-4">
+                                      <div className="text-right">
+                                        <p className="font-semibold flex items-center">
+                                          <IndianRupee className="h-4 w-4" />
+                                          {order.total}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {order.order_items?.length || 0} items
+                                        </p>
+                                      </div>
+                                      {isExpanded ? (
+                                        <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                                      ) : (
+                                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
+                              </CollapsibleTrigger>
 
-                                {order.notes && (
-                                  <div className="text-sm">
-                                    <p className="font-medium">Notes</p>
-                                    <p className="text-muted-foreground">{order.notes}</p>
+                              <CollapsibleContent>
+                                <div className="border-t p-4 bg-muted/30 space-y-4">
+                                  <div className="grid gap-3 sm:grid-cols-2">
+                                    <div className="flex items-start gap-2 text-sm">
+                                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                      <div>
+                                        <p className="font-medium">Delivery Address</p>
+                                        <p className="text-muted-foreground">{formatAddress(order.shipping_address)}</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-start gap-2 text-sm">
+                                      <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                      <div>
+                                        <p className="font-medium">Phone</p>
+                                        <p className="text-muted-foreground">{order.phone || "N/A"}</p>
+                                      </div>
+                                    </div>
                                   </div>
-                                )}
 
-                                {/* Show cancellation reason if cancelled */}
-                                {isCancelled && order.cancellation_reason && (
-                                  <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                                    <p className="font-medium text-destructive text-sm flex items-center gap-2">
-                                      <XCircle className="h-4 w-4" />
-                                      Cancellation Reason ({order.cancelled_by === 'admin' ? 'by Admin' : 'by You'})
-                                    </p>
-                                    <p className="text-sm text-muted-foreground mt-1">{order.cancellation_reason}</p>
+                                  <div>
+                                    <p className="font-medium mb-2">Order Items</p>
+                                    <div className="space-y-2">
+                                      {order.order_items?.map((item) => (
+                                        <div 
+                                          key={item.id} 
+                                          className="flex items-center gap-3 p-2 bg-background rounded-lg"
+                                        >
+                                          <img
+                                            src={item.product?.image_url || "https://via.placeholder.com/50"}
+                                            alt={item.product?.name || "Product"}
+                                            className="w-12 h-12 object-cover rounded"
+                                          />
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-sm truncate">
+                                              {item.product?.name || "Unknown Product"}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                              {item.product?.category} {item.product?.weight && `• ${item.product.weight}`}
+                                            </p>
+                                          </div>
+                                          <div className="text-right text-sm">
+                                            <p>₹{item.price} × {item.quantity}</p>
+                                            <p className="font-medium">₹{item.price * item.quantity}</p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
                                   </div>
-                                )}
 
-                                {canCancel && (
-                                  <div className="pt-2">
-                                    <Button
-                                      variant="destructive"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setCancelOrderId(order.id);
-                                      }}
-                                      className="gap-2"
-                                    >
-                                      <XCircle className="h-4 w-4" />
-                                      Cancel Order
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                            </CollapsibleContent>
-                          </div>
-                        </Collapsible>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                                  {order.notes && (
+                                    <div className="text-sm">
+                                      <p className="font-medium">Notes</p>
+                                      <p className="text-muted-foreground">{order.notes}</p>
+                                    </div>
+                                  )}
+
+                                  {/* Show cancellation reason if cancelled */}
+                                  {isCancelled && order.cancellation_reason && (
+                                    <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                                      <p className="font-medium text-destructive text-sm flex items-center gap-2">
+                                        <XCircle className="h-4 w-4" />
+                                        Cancellation Reason ({order.cancelled_by === 'admin' ? 'by Admin' : 'by You'})
+                                      </p>
+                                      <p className="text-sm text-muted-foreground mt-1">{order.cancellation_reason}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </CollapsibleContent>
+                            </div>
+                          </Collapsible>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Profile Tab */}
