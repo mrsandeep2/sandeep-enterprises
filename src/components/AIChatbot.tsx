@@ -197,7 +197,7 @@ export const AIChatbot = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className="fixed bottom-24 right-6 z-50 w-[380px] h-[550px] flex flex-col shadow-2xl border-2 animate-in slide-in-from-bottom-5">
+        <Card className="fixed bottom-24 right-2 left-2 sm:left-auto sm:right-6 z-50 sm:w-[380px] h-[500px] sm:h-[550px] flex flex-col shadow-2xl border-2 animate-in slide-in-from-bottom-5">
           {/* Header */}
           <div className="bg-primary text-primary-foreground p-4 rounded-t-lg">
             <div className="flex items-center gap-3">
@@ -235,13 +235,13 @@ export const AIChatbot = () => {
                 )}
                 <div
                   className={cn(
-                    "max-w-[80%] rounded-2xl px-4 py-2 text-sm",
+                    "max-w-[75%] rounded-2xl px-3 py-2 text-sm break-words overflow-hidden",
                     msg.role === 'user'
                       ? 'bg-primary text-primary-foreground rounded-br-md'
                       : 'bg-background border rounded-bl-md'
                   )}
                 >
-                  {msg.content}
+                  <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                 </div>
                 {msg.role === 'user' && (
                   <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center shrink-0">
