@@ -101,6 +101,7 @@ interface SavedAddress {
   landmark: string;
   village: string;
   pincode: string;
+  phone: string;
   isDefault?: boolean;
 }
 
@@ -153,6 +154,7 @@ const Profile = () => {
     landmark: "",
     village: "",
     pincode: "",
+    phone: "",
     isDefault: false,
   });
   const [savingAddress, setSavingAddress] = useState(false);
@@ -348,7 +350,7 @@ const Profile = () => {
 
   const handleAddAddress = () => {
     setEditingAddress(null);
-    setAddressForm({ label: "", landmark: "", village: "", pincode: "", isDefault: false });
+    setAddressForm({ label: "", landmark: "", village: "", pincode: "", phone: "", isDefault: false });
     setIsAddressDialogOpen(true);
   };
 
@@ -359,6 +361,7 @@ const Profile = () => {
       landmark: address.landmark,
       village: address.village,
       pincode: address.pincode,
+      phone: address.phone || "",
       isDefault: address.isDefault || false,
     });
     setIsAddressDialogOpen(true);
@@ -366,6 +369,33 @@ const Profile = () => {
 
   const handleSaveAddress = async () => {
     if (!profile) return;
+    
+    // Validate required fields
+    if (!addressForm.phone.trim()) {
+      toast({
+        title: "Phone Required",
+        description: "Please enter a mobile number for this address",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!addressForm.village.trim()) {
+      toast({
+        title: "Village Required",
+        description: "Please enter the village/area name",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!addressForm.pincode.trim()) {
+      toast({
+        title: "Pincode Required",
+        description: "Please enter the pincode",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSavingAddress(true);
 
     const currentAddresses: SavedAddress[] = profile.saved_addresses || [];
@@ -1215,22 +1245,37 @@ const Profile = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="village">Village</Label>
+              <Label htmlFor="village">Village/Area *</Label>
               <Input
                 id="village"
-                placeholder="Enter village"
+                placeholder="Enter village/area"
                 value={addressForm.village}
                 onChange={(e) => setAddressForm(prev => ({ ...prev, village: e.target.value }))}
+                required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="pincode">Pincode</Label>
-              <Input
-                id="pincode"
-                placeholder="Enter pincode"
-                value={addressForm.pincode}
-                onChange={(e) => setAddressForm(prev => ({ ...prev, pincode: e.target.value }))}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pincode">Pincode *</Label>
+                <Input
+                  id="pincode"
+                  placeholder="Enter pincode"
+                  value={addressForm.pincode}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, pincode: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="addressPhone">Mobile Number *</Label>
+                <Input
+                  id="addressPhone"
+                  type="tel"
+                  placeholder="Enter mobile number"
+                  value={addressForm.phone}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, phone: e.target.value }))}
+                  required
+                />
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <input

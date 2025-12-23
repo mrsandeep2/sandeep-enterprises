@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, MapPin, Plus, Check } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { z } from "zod";
 
 // Validation schema for checkout form
@@ -35,10 +36,23 @@ interface CartItem {
   quantity: number;
 }
 
+interface SavedAddress {
+  id: string;
+  label: string;
+  landmark: string;
+  village: string;
+  pincode: string;
+  phone: string;
+  isDefault?: boolean;
+}
+
 const Checkout = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState("standard");
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [useNewAddress, setUseNewAddress] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -54,11 +68,36 @@ const Checkout = () => {
 
   useEffect(() => {
     loadCart();
+    loadSavedAddresses();
   }, []);
 
   const loadCart = () => {
     const cartData = JSON.parse(localStorage.getItem("cart") || "[]");
     setCart(cartData);
+  };
+
+  const loadSavedAddresses = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("saved_addresses")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.saved_addresses) {
+      const addresses = profile.saved_addresses as unknown as SavedAddress[];
+      setSavedAddresses(addresses);
+      const defaultAddr = addresses.find(a => a.isDefault);
+      if (defaultAddr) {
+        setSelectedAddressId(defaultAddr.id);
+      } else if (addresses.length > 0) {
+        setSelectedAddressId(addresses[0].id);
+      }
+    } else {
+      setUseNewAddress(true);
+    }
   };
 
   const calculateTotal = () => {
@@ -88,9 +127,39 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Get selected saved address or use form data
+    let addressToUse = formData;
+    let phoneToUse = formData.phone;
+    
+    if (deliveryMethod !== "pickup" && !useNewAddress && selectedAddressId) {
+      const selectedAddr = savedAddresses.find(a => a.id === selectedAddressId);
+      if (selectedAddr) {
+        addressToUse = {
+          ...formData,
+          fullName: formData.fullName || selectedAddr.label,
+          address: selectedAddr.village,
+          city: selectedAddr.village,
+          pinCode: selectedAddr.pincode,
+          landmark: selectedAddr.landmark,
+        };
+        phoneToUse = selectedAddr.phone || formData.phone;
+      }
+    }
+
     // Validate form data based on delivery method
     if (deliveryMethod === "pickup") {
-      const validationResult = pickupSchema.safeParse(formData);
+      const validationResult = pickupSchema.safeParse({ ...formData, phone: phoneToUse });
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        toast({
+          title: "Validation error",
+          description: firstError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+    } else if (useNewAddress || !selectedAddressId) {
+      const validationResult = checkoutSchema.safeParse(formData);
       if (!validationResult.success) {
         const firstError = validationResult.error.errors[0];
         toast({
@@ -101,14 +170,9 @@ const Checkout = () => {
         return;
       }
     } else {
-      const validationResult = checkoutSchema.safeParse(formData);
-      if (!validationResult.success) {
-        const firstError = validationResult.error.errors[0];
-        toast({
-          title: "Validation error",
-          description: firstError.message,
-          variant: "destructive",
-        });
+      // Using saved address - validate name and phone
+      if (!formData.fullName.trim()) {
+        toast({ title: "Validation error", description: "Full name is required", variant: "destructive" });
         return;
       }
     }
@@ -197,13 +261,32 @@ const Checkout = () => {
       const deliveryFee = calculateDeliveryFee();
       const total = verifiedSubtotal + deliveryFee;
 
-      const shippingAddress = deliveryMethod === "pickup" ? null : {
-        fullName: formData.fullName.trim(),
-        address: formData.address?.trim(),
-        city: formData.city?.trim(),
-        pinCode: formData.pinCode?.trim(),
-        landmark: formData.landmark?.trim(),
-      };
+      let shippingAddress = null;
+      let orderPhone = formData.phone.trim();
+      
+      if (deliveryMethod !== "pickup") {
+        if (!useNewAddress && selectedAddressId) {
+          const selectedAddr = savedAddresses.find(a => a.id === selectedAddressId);
+          if (selectedAddr) {
+            shippingAddress = {
+              fullName: formData.fullName.trim(),
+              address: selectedAddr.village,
+              city: selectedAddr.village,
+              pinCode: selectedAddr.pincode,
+              landmark: selectedAddr.landmark,
+            };
+            orderPhone = selectedAddr.phone || formData.phone.trim();
+          }
+        } else {
+          shippingAddress = {
+            fullName: formData.fullName.trim(),
+            address: formData.address?.trim(),
+            city: formData.city?.trim(),
+            pinCode: formData.pinCode?.trim(),
+            landmark: formData.landmark?.trim(),
+          };
+        }
+      }
 
       // Create order with server-verified total
       const { data: order, error: orderError } = await supabase
@@ -214,7 +297,7 @@ const Checkout = () => {
           status: "pending",
           shipping_address: shippingAddress,
           delivery_method: deliveryMethod,
-          phone: formData.phone.trim(),
+          phone: orderPhone,
           notes: formData.notes?.trim() || null,
         })
         .select()
@@ -337,73 +420,156 @@ const Checkout = () => {
               {deliveryMethod !== "pickup" ? (
                 <div className="glass-card rounded-2xl p-6">
                   <h2 className="text-xl font-semibold mb-4">Shipping Address</h2>
-                  <div className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="fullName">Full Name *</Label>
-                        <Input
-                          id="fullName"
-                          name="fullName"
-                          value={formData.fullName}
-                          onChange={handleInputChange}
-                          required
-                        />
+                  
+                  {/* Saved Addresses */}
+                  {savedAddresses.length > 0 && !useNewAddress && (
+                    <div className="space-y-3 mb-4">
+                      <p className="text-sm text-muted-foreground">Select a saved address:</p>
+                      <div className="grid gap-3">
+                        {savedAddresses.map((addr) => (
+                          <Card
+                            key={addr.id}
+                            className={`p-4 cursor-pointer border-2 transition-all ${
+                              selectedAddressId === addr.id 
+                                ? "border-primary bg-primary/5" 
+                                : "border-border hover:border-primary/50"
+                            }`}
+                            onClick={() => setSelectedAddressId(addr.id)}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                                selectedAddressId === addr.id ? "border-primary bg-primary" : "border-muted-foreground"
+                              }`}>
+                                {selectedAddressId === addr.id && <Check className="h-3 w-3 text-primary-foreground" />}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium">{addr.label || "Address"}</span>
+                                  {addr.isDefault && (
+                                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Default</span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {addr.village}, {addr.pincode}
+                                  {addr.landmark && ` (Near: ${addr.landmark})`}
+                                </p>
+                                <p className="text-sm text-muted-foreground">📞 {addr.phone}</p>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
                       </div>
-                      <div>
-                        <Label htmlFor="phone">Phone Number *</Label>
-                        <Input
-                          id="phone"
-                          name="phone"
-                          type="tel"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="gap-2 w-full"
+                        onClick={() => setUseNewAddress(true)}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Use a different address
+                      </Button>
                     </div>
-                    <div>
-                      <Label htmlFor="address">Address *</Label>
+                  )}
+                  
+                  {/* New Address Form */}
+                  {(useNewAddress || savedAddresses.length === 0) && (
+                    <>
+                      {savedAddresses.length > 0 && (
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm"
+                          className="mb-4"
+                          onClick={() => setUseNewAddress(false)}
+                        >
+                          ← Back to saved addresses
+                        </Button>
+                      )}
+                      <div className="space-y-4">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="fullName">Full Name *</Label>
+                            <Input
+                              id="fullName"
+                              name="fullName"
+                              value={formData.fullName}
+                              onChange={handleInputChange}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="phone">Phone Number *</Label>
+                            <Input
+                              id="phone"
+                              name="phone"
+                              type="tel"
+                              value={formData.phone}
+                              onChange={handleInputChange}
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="address">Address *</Label>
+                          <Input
+                            id="address"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleInputChange}
+                            required
+                          />
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="city">City *</Label>
+                            <Input
+                              id="city"
+                              name="city"
+                              value={formData.city}
+                              onChange={handleInputChange}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="pinCode">Pin Code *</Label>
+                            <Input
+                              id="pinCode"
+                              name="pinCode"
+                              value={formData.pinCode}
+                              onChange={handleInputChange}
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="landmark">Landmark</Label>
+                          <Input
+                            id="landmark"
+                            name="landmark"
+                            value={formData.landmark}
+                            onChange={handleInputChange}
+                            placeholder="Near temple, opposite school, etc."
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Full Name when using saved address */}
+                  {!useNewAddress && savedAddresses.length > 0 && (
+                    <div className="mt-4 pt-4 border-t">
+                      <Label htmlFor="fullName">Recipient Name *</Label>
                       <Input
-                        id="address"
-                        name="address"
-                        value={formData.address}
+                        id="fullName"
+                        name="fullName"
+                        value={formData.fullName}
                         onChange={handleInputChange}
+                        placeholder="Enter recipient's name"
                         required
                       />
                     </div>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="city">City *</Label>
-                        <Input
-                          id="city"
-                          name="city"
-                          value={formData.city}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="pinCode">Pin Code *</Label>
-                        <Input
-                          id="pinCode"
-                          name="pinCode"
-                          value={formData.pinCode}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="landmark">Landmark</Label>
-                      <Input
-                        id="landmark"
-                        name="landmark"
-                        value={formData.landmark}
-                        onChange={handleInputChange}
-                        placeholder="Near temple, opposite school, etc."
-                      />
-                    </div>
-                  </div>
+                  )}
                 </div>
               ) : (
                 <div className="glass-card rounded-2xl p-6">
