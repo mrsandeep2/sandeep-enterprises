@@ -9,6 +9,7 @@ import Footer from "./components/Footer";
 import SplashScreen from "./components/SplashScreen";
 import { Skeleton } from "./components/ui/skeleton";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 // Lazy load pages for better code splitting
 const Products = lazy(() => import("./pages/Products"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
@@ -79,9 +80,21 @@ const App = () => {
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/cart" element={<Cart />} />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route path="/admin/orders" element={<AdminOrders />} />
-                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/admin" element={
+                    <ProtectedRoute requiredRole="admin">
+                      <Admin />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/orders" element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminOrders />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/profile" element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  } />
                   <Route path="/compare" element={<ProductComparison />} />
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/order-confirmation" element={<OrderConfirmation />} />
