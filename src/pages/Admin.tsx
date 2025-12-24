@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Edit, Trash2, Plus, ShieldX, Eye, EyeOff, Package, X, Image as ImageIcon } from "lucide-react";
+import { Loader2, Edit, Trash2, Plus, Eye, EyeOff, Package, X, Image as ImageIcon } from "lucide-react";
 import { z } from "zod";
 import {
   Dialog,
@@ -127,10 +126,8 @@ const generateProductName = (category: string, subCategory?: string, weight?: st
 };
 
 const Admin = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -139,7 +136,7 @@ const Admin = () => {
   const [newImageUrl, setNewImageUrl] = useState("");
 
   useEffect(() => {
-    checkAuthAndRole();
+    fetchProducts();
   }, []);
 
   // Auto-generate product name when category/subcategory/weight changes
@@ -155,42 +152,6 @@ const Admin = () => {
       }
     }
   }, [formData.category, formData.sub_category, formData.weight]);
-
-  const checkAuthAndRole = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-
-      if (roleError) {
-        if (import.meta.env.DEV) console.error("Error checking role:", roleError);
-        setIsAdmin(false);
-        setLoading(false);
-        return;
-      }
-
-      if (roleData) {
-        setIsAdmin(true);
-        fetchProducts();
-      } else {
-        setIsAdmin(false);
-        setLoading(false);
-      }
-    } catch (error) {
-      if (import.meta.env.DEV) console.error("Error checking auth:", error);
-      setIsAdmin(false);
-      setLoading(false);
-    }
-  };
 
   const fetchProducts = async () => {
     try {
@@ -391,25 +352,6 @@ const Admin = () => {
     );
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen">
-        <Navbar />
-        <main className="container mx-auto px-4 py-12">
-          <div className="glass-card rounded-2xl p-12 text-center max-w-lg mx-auto">
-            <ShieldX className="h-16 w-16 text-destructive mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-            <p className="text-muted-foreground mb-6">
-              You don&apos;t have permission to access this page. Admin privileges are required.
-            </p>
-            <Button onClick={() => navigate("/")}>
-              Go to Products
-            </Button>
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen">
