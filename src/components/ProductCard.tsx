@@ -72,11 +72,11 @@ export const ProductCard = ({ product, hideCartActions = false }: ProductCardPro
       onClick={handleCardClick}
       className="glass-card glass-card-hover rounded-2xl overflow-hidden group cursor-pointer"
     >
-      <div className="relative aspect-square sm:h-52 lg:h-64 overflow-hidden bg-muted/30">
+      <div className="relative aspect-square overflow-hidden bg-muted/30 p-4">
         <OptimizedImage
           src={product.image_url || "https://via.placeholder.com/400"}
           alt={product.name}
-          className="w-full h-full object-contain sm:object-cover transition-transform duration-300 group-hover:scale-110"
+          className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
           wrapperClassName="w-full h-full"
         />
         {product.discount && product.discount > 0 && (
