@@ -543,51 +543,13 @@ const Admin = () => {
                   </div>
                 </div>
 
-                {/* Images */}
+                {/* Product Image */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg border-b pb-2">Product Images</h3>
+                  <h3 className="font-semibold text-lg border-b pb-2">Product Image</h3>
                   
-                  <div className="flex gap-2">
-                    <Input
-                      value={newImageUrl}
-                      onChange={(e) => setNewImageUrl(e.target.value)}
-                      placeholder="Enter image URL and click + to add"
-                      className="flex-1"
-                    />
-                    <Button type="button" variant="outline" onClick={addImageUrl}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  {formData.images.length > 0 && (
-                    <div className="flex flex-wrap gap-3">
-                      {formData.images.map((img, idx) => (
-                        <div key={idx} className="relative group">
-                          <img
-                            src={img}
-                            alt={`Product ${idx + 1}`}
-                            className="w-20 h-20 object-cover rounded-lg border"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(idx)}
-                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                          {idx === 0 && (
-                            <span className="absolute bottom-0 left-0 right-0 bg-primary/80 text-primary-foreground text-xs text-center py-0.5 rounded-b-lg">
-                              Primary
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
                   <div className="space-y-2">
                     <Label htmlFor="image_url">
-                      Primary Image URL <span className="text-muted-foreground text-xs">(Optional)</span>
+                      Image URL <span className="text-muted-foreground text-xs">(Optional)</span>
                     </Label>
                     <Input
                       id="image_url"
@@ -600,6 +562,16 @@ const Admin = () => {
                     />
                     {formErrors.image_url && (
                       <p className="text-sm text-destructive">{formErrors.image_url}</p>
+                    )}
+                    {formData.image_url && (
+                      <div className="mt-2">
+                        <img
+                          src={formData.image_url}
+                          alt="Product preview"
+                          className="w-24 h-24 object-cover rounded-lg border"
+                          onError={(e) => (e.currentTarget.style.display = 'none')}
+                        />
+                      </div>
                     )}
                   </div>
                 </div>
