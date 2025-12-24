@@ -27,6 +27,7 @@ import {
   Calendar,
   IndianRupee,
   MessageSquare,
+  Trash2,
 } from "lucide-react";
 import {
   Select,
@@ -660,15 +661,27 @@ const AdminOrders = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openOrderDetail(order)}
-                              className="gap-1"
-                            >
-                              <Eye className="h-4 w-4" />
-                              View
-                            </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openOrderDetail(order)}
+                                className="gap-1"
+                              >
+                                <Eye className="h-4 w-4" />
+                                View
+                              </Button>
+                              {(order.status === "delivered" || order.status === "cancelled") && (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => setDeleteOrderId(order.id)}
+                                  className="gap-1"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -921,6 +934,45 @@ const AdminOrders = () => {
             >
               {cancellingOrder && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Confirm Cancellation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Order Confirmation Dialog */}
+      <Dialog open={!!deleteOrderId} onOpenChange={(open) => !open && setDeleteOrderId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete Order Permanently
+            </DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. The order and all its items will be permanently removed from the system.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Order ID: <span className="font-mono">{deleteOrderId?.slice(0, 8)}...</span>
+            </p>
+          </div>
+          
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteOrderId(null)}
+              disabled={deletingOrder}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteOrder}
+              disabled={deletingOrder}
+            >
+              {deletingOrder && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Delete Permanently
             </Button>
           </DialogFooter>
         </DialogContent>
