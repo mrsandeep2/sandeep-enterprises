@@ -72,7 +72,7 @@ export const ProductCard = ({ product, hideCartActions = false }: ProductCardPro
       onClick={handleCardClick}
       className="glass-card glass-card-hover rounded-2xl overflow-hidden group cursor-pointer"
     >
-      <div className="relative aspect-square overflow-hidden bg-muted/30 p-4">
+      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-primary/10 via-secondary/15 to-accent/10 p-4">
         <OptimizedImage
           src={product.image_url || "https://via.placeholder.com/400"}
           alt={product.name}
